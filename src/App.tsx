@@ -168,7 +168,7 @@ function App() {
       }
     } finally {
       setLoading(false)
-      fetchPosts(repoConfig)
+    }
   }
 
   const extractTitle = (content: string): string | null => {
