@@ -29,6 +29,7 @@ export interface RepoConfig {
   blogTitle?: string
   blogDescription?: string
   blogSeoDescription?: string
+  githubToken?: string
 }
 
 function App() {
@@ -62,7 +63,13 @@ function App() {
     setError(null)
     
     try {
-      const octokit = new Octokit()
+      // Create Octokit instance with optional authentication
+      const octokitOptions: any = {}
+      if (config.githubToken) {
+        octokitOptions.auth = config.githubToken
+      }
+      
+      const octokit = new Octokit(octokitOptions)
       const allPosts: BlogPost[] = []
       
       // First, verify the repository exists and is accessible
@@ -71,7 +78,10 @@ function App() {
           owner: config.owner,
           repo: config.repo
         })
-      } catch (repoError) {
+      } catch (repoError: any) {
+        if (repoError.status === 403 && repoError.message?.includes('rate limit')) {
+          throw new Error(`GitHub API rate limit exceeded. Please add a GitHub token in your configuration to get higher rate limits (5,000 requests/hour vs 60).`)
+        }
         throw new Error(`Repository "${config.owner}/${config.repo}" not found or not accessible. Please check the repository name and ensure it's public.`)
       }
       
@@ -117,13 +127,19 @@ function App() {
                     category
                   })
                 }
-              } catch (fileError) {
+              } catch (fileError: any) {
+                if (fileError.status === 403 && fileError.message?.includes('rate limit')) {
+                  throw new Error(`GitHub API rate limit exceeded while fetching files. Please add a GitHub token to your configuration.`)
+                }
                 console.warn(`Failed to fetch file ${item.path}:`, fileError)
                 // Continue processing other files
               }
             }
           }
-        } catch (dirError) {
+        } catch (dirError: any) {
+          if (dirError.status === 403 && dirError.message?.includes('rate limit')) {
+            throw new Error(`GitHub API rate limit exceeded. Please add a GitHub token to your configuration.`)
+          }
           if (path === (config.path || '')) {
             // If the main directory doesn't exist, throw a helpful error
             throw new Error(`Directory "${path || 'root'}" not found in repository. Please check the path configuration.`)
@@ -142,9 +158,11 @@ function App() {
       } else {
         setPosts(allPosts)
       }
-    } catch (err) {
+    } catch (err: any) {
       if (err instanceof Error) {
         setError(err.message)
+      } else if (err.status === 403 && err.message?.includes('rate limit')) {
+        setError('GitHub API rate limit exceeded. Please add a GitHub token to your configuration to get higher rate limits.')
       } else {
         setError('Failed to fetch posts. Please check your repository configuration.')
       }
@@ -254,12 +272,22 @@ function App() {
             {error && (
               <div className="text-center py-12">
                 <p className="text-destructive mb-4">{error}</p>
-                <button 
-                  onClick={() => fetchPosts(repoConfig)}
-                  className="text-accent hover:underline"
-                >
-                  Try again
-                </button>
+                <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                  <button 
+                    onClick={() => fetchPosts(repoConfig)}
+                    className="text-accent hover:underline"
+                  >
+                    Try again
+                  </button>
+                  {error.includes('rate limit') && (
+                    <button 
+                      onClick={() => setRepoConfig(null)}
+                      className="text-accent hover:underline"
+                    >
+                      Add GitHub Token
+                    </button>
+                  )}
+                </div>
               </div>
             )}
             

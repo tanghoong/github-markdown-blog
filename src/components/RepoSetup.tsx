@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { GitBranch, BookOpen } from '@phosphor-icons/react'
+import { GitBranch, BookOpen, Key } from '@phosphor-icons/react'
 
 interface RepoSetupProps {
   onConfigSubmit: (config: RepoConfig) => void
@@ -19,6 +19,7 @@ export function RepoSetup({ onConfigSubmit }: RepoSetupProps) {
   const [blogTitle, setBlogTitle] = useState('')
   const [blogDescription, setBlogDescription] = useState('')
   const [blogSeoDescription, setBlogSeoDescription] = useState('')
+  const [githubToken, setGithubToken] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,7 +38,8 @@ export function RepoSetup({ onConfigSubmit }: RepoSetupProps) {
       path: path.trim(),
       blogTitle: blogTitle.trim() || `${owner.trim()}'s Blog`,
       blogDescription: blogDescription.trim(),
-      blogSeoDescription: blogSeoDescription.trim() || blogDescription.trim()
+      blogSeoDescription: blogSeoDescription.trim() || blogDescription.trim(),
+      githubToken: githubToken.trim()
     }
     
     onConfigSubmit(config)
@@ -106,6 +108,20 @@ export function RepoSetup({ onConfigSubmit }: RepoSetupProps) {
             </p>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="github-token">GitHub Token (optional but recommended)</Label>
+            <Input
+              id="github-token"
+              type="password"
+              placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+              value={githubToken}
+              onChange={(e) => setGithubToken(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Personal access token to avoid rate limits. <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Create one here</a> with 'public_repo' scope.
+            </p>
+          </div>
+
           <div className="space-y-4 border-t pt-4">
             <h3 className="font-medium text-sm">Blog Configuration</h3>
             
@@ -157,9 +173,22 @@ export function RepoSetup({ onConfigSubmit }: RepoSetupProps) {
         </form>
 
         <div className="mt-6 space-y-3">
+          <div className="p-4 bg-warning/20 border border-warning/30 rounded-md">
+            <div className="flex gap-2 items-start">
+              <Key size={16} className="text-warning-foreground mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-warning-foreground">Rate Limit Warning</p>
+                <p className="text-xs text-warning-foreground/80 mt-1">
+                  Without a GitHub token, you may hit rate limits (60 requests/hour). 
+                  With a token, you get 5,000 requests/hour.
+                </p>
+              </div>
+            </div>
+          </div>
+          
           <div className="p-4 bg-muted rounded-md">
             <p className="text-sm text-muted-foreground">
-              <strong>Note:</strong> This will access public repositories only. 
+              <strong>Note:</strong> This will access public repositories. 
               Organize your markdown files in the "contents" folder with subfolders as categories 
               (e.g., contents/tech/, contents/personal/).
             </p>
