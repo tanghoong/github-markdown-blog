@@ -1,5 +1,157 @@
+import { useState, useEffect } from 'react'
+import { useKV } from '@github/spark/hooks'
+import { BlogHeader } from './components/BlogHeader'
+import { PostList } from './components/PostList'
+import { PostReader } from './components/PostReader'
+import { RepoSetup } from './components/RepoSetup'
+import { LoadingSpinner } from './components/LoadingSpinner'
+import { Octokit } from 'octokit'
+
+export interface BlogPost {
+  title: string
+  content: string
+  path: string
+  sha: string
+  date?: string
+  excerpt?: string
+}
+
+export interface RepoConfig {
+  owner: string
+  repo: string
+  branch?: string
+  path?: string
+}
+
 function App() {
-    return <div></div>
+  const [repoConfig, setRepoConfig] = useKV<RepoConfig | null>('blog-repo-config', null)
+  const [posts, setPosts] = useState<BlogPost[]>([])
+  const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchPosts = async (config: RepoConfig) => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const octokit = new Octokit()
+      
+      // Get repository contents
+      const { data: contents } = await octokit.rest.repos.getContent({
+        owner: config.owner,
+        repo: config.repo,
+        path: config.path || '',
+        ref: config.branch || 'main'
+      })
+
+      // Filter markdown files
+      const markdownFiles = Array.isArray(contents) 
+        ? contents.filter(file => 
+            file.type === 'file' && 
+            (file.name.endsWith('.md') || file.name.endsWith('.markdown'))
+          )
+        : []
+
+      // Fetch content for each markdown file
+      const postsData = await Promise.all(
+        markdownFiles.map(async (file) => {
+          const { data: fileData } = await octokit.rest.repos.getContent({
+            owner: config.owner,
+            repo: config.repo,
+            path: file.path,
+            ref: config.branch || 'main'
+          })
+
+          if ('content' in fileData) {
+            const content = atob(fileData.content)
+            const title = extractTitle(content) || file.name.replace(/\.(md|markdown)$/, '')
+            const excerpt = extractExcerpt(content)
+            
+            return {
+              title,
+              content,
+              path: file.path,
+              sha: fileData.sha,
+              excerpt
+            }
+          }
+          return null
+        })
+      )
+
+      const validPosts = postsData.filter(Boolean) as BlogPost[]
+      setPosts(validPosts)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch posts')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const extractTitle = (content: string): string | null => {
+    const titleMatch = content.match(/^#\s+(.+)$/m)
+    return titleMatch ? titleMatch[1].trim() : null
+  }
+
+  const extractExcerpt = (content: string): string => {
+    // Remove title and get first paragraph
+    const withoutTitle = content.replace(/^#\s+.+$/m, '').trim()
+    const firstPara = withoutTitle.split('\n\n')[0]
+    return firstPara.length > 150 ? firstPara.substring(0, 150) + '...' : firstPara
+  }
+
+  useEffect(() => {
+    if (repoConfig) {
+      fetchPosts(repoConfig)
+    }
+  }, [repoConfig])
+
+  if (!repoConfig) {
+    return <RepoSetup onConfigSubmit={setRepoConfig} />
+  }
+
+  if (selectedPost) {
+    return (
+      <PostReader 
+        post={selectedPost} 
+        onBack={() => setSelectedPost(null)}
+        repoConfig={repoConfig}
+      />
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <BlogHeader 
+        repoConfig={repoConfig} 
+        onConfigChange={() => setRepoConfig(null)}
+      />
+      
+      <main className="max-w-4xl mx-auto px-6 py-8">
+        {loading && <LoadingSpinner />}
+        
+        {error && (
+          <div className="text-center py-12">
+            <p className="text-destructive mb-4">{error}</p>
+            <button 
+              onClick={() => fetchPosts(repoConfig)}
+              className="text-accent hover:underline"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+        
+        {!loading && !error && (
+          <PostList 
+            posts={posts} 
+            onPostSelect={setSelectedPost}
+          />
+        )}
+      </main>
+    </div>
+  )
 }
 
 export default App
