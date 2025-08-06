@@ -14,6 +14,7 @@ export interface BlogPost {
   sha: string
   date?: string
   excerpt?: string
+  category?: string
 }
 
 export interface RepoConfig {
@@ -36,52 +37,56 @@ function App() {
     
     try {
       const octokit = new Octokit()
+      const allPosts: BlogPost[] = []
       
-      // Get repository contents
-      const { data: contents } = await octokit.rest.repos.getContent({
-        owner: config.owner,
-        repo: config.repo,
-        path: config.path || '',
-        ref: config.branch || 'main'
-      })
+      // Function to recursively fetch markdown files from directories
+      const fetchFromDirectory = async (path: string, category?: string): Promise<void> => {
+        const { data: contents } = await octokit.rest.repos.getContent({
+          owner: config.owner,
+          repo: config.repo,
+          path: path,
+          ref: config.branch || 'main'
+        })
 
-      // Filter markdown files
-      const markdownFiles = Array.isArray(contents) 
-        ? contents.filter(file => 
-            file.type === 'file' && 
-            (file.name.endsWith('.md') || file.name.endsWith('.markdown'))
-          )
-        : []
+        if (!Array.isArray(contents)) return
 
-      // Fetch content for each markdown file
-      const postsData = await Promise.all(
-        markdownFiles.map(async (file) => {
-          const { data: fileData } = await octokit.rest.repos.getContent({
-            owner: config.owner,
-            repo: config.repo,
-            path: file.path,
-            ref: config.branch || 'main'
-          })
+        // Process directories (categories) and files
+        for (const item of contents) {
+          if (item.type === 'dir') {
+            // Recursively fetch from subdirectory
+            await fetchFromDirectory(item.path, item.name)
+          } else if (item.type === 'file' && 
+                     (item.name.endsWith('.md') || item.name.endsWith('.markdown'))) {
+            // Fetch markdown file content
+            const { data: fileData } = await octokit.rest.repos.getContent({
+              owner: config.owner,
+              repo: config.repo,
+              path: item.path,
+              ref: config.branch || 'main'
+            })
 
-          if ('content' in fileData) {
-            const content = atob(fileData.content)
-            const title = extractTitle(content) || file.name.replace(/\.(md|markdown)$/, '')
-            const excerpt = extractExcerpt(content)
-            
-            return {
-              title,
-              content,
-              path: file.path,
-              sha: fileData.sha,
-              excerpt
+            if ('content' in fileData) {
+              const content = atob(fileData.content)
+              const title = extractTitle(content) || item.name.replace(/\.(md|markdown)$/, '')
+              const excerpt = extractExcerpt(content)
+              
+              allPosts.push({
+                title,
+                content,
+                path: item.path,
+                sha: fileData.sha,
+                excerpt,
+                category
+              })
             }
           }
-          return null
-        })
-      )
+        }
+      }
 
-      const validPosts = postsData.filter(Boolean) as BlogPost[]
-      setPosts(validPosts)
+      // Start fetching from the configured path
+      await fetchFromDirectory(config.path || '')
+      
+      setPosts(allPosts)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch posts')
     } finally {

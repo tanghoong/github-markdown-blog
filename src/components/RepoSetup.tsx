@@ -14,7 +14,7 @@ export function RepoSetup({ onConfigSubmit }: RepoSetupProps) {
   const [owner, setOwner] = useState('')
   const [repo, setRepo] = useState('')
   const [branch, setBranch] = useState('main')
-  const [path, setPath] = useState('')
+  const [path, setPath] = useState('contents')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,12 +90,12 @@ export function RepoSetup({ onConfigSubmit }: RepoSetupProps) {
             <Input
               id="path"
               type="text"
-              placeholder="posts/ or docs/"
+              placeholder="contents/"
               value={path}
               onChange={(e) => setPath(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Leave empty to use repository root
+              Folder containing your blog posts. Subfolders will be treated as categories.
             </p>
           </div>
 
@@ -112,7 +112,8 @@ export function RepoSetup({ onConfigSubmit }: RepoSetupProps) {
         <div className="mt-6 p-4 bg-muted rounded-md">
           <p className="text-sm text-muted-foreground">
             <strong>Note:</strong> This will access public repositories only. 
-            Make sure your blog repository is public and contains markdown files.
+            Organize your markdown files in the "contents" folder with subfolders as categories 
+            (e.g., contents/tech/, contents/personal/).
           </p>
         </div>
       </Card>
