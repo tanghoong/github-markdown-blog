@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { GitBranch, BookOpen } from '@phosphor-icons/react'
 
 interface RepoSetupProps {
@@ -15,6 +16,9 @@ export function RepoSetup({ onConfigSubmit }: RepoSetupProps) {
   const [repo, setRepo] = useState('')
   const [branch, setBranch] = useState('main')
   const [path, setPath] = useState('contents')
+  const [blogTitle, setBlogTitle] = useState('')
+  const [blogDescription, setBlogDescription] = useState('')
+  const [blogSeoDescription, setBlogSeoDescription] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,7 +34,10 @@ export function RepoSetup({ onConfigSubmit }: RepoSetupProps) {
       owner: owner.trim(),
       repo: repo.trim(),
       branch: branch.trim() || 'main',
-      path: path.trim()
+      path: path.trim(),
+      blogTitle: blogTitle.trim() || `${owner.trim()}'s Blog`,
+      blogDescription: blogDescription.trim(),
+      blogSeoDescription: blogSeoDescription.trim() || blogDescription.trim()
     }
     
     onConfigSubmit(config)
@@ -97,6 +104,46 @@ export function RepoSetup({ onConfigSubmit }: RepoSetupProps) {
             <p className="text-xs text-muted-foreground">
               Folder containing your blog posts. Subfolders will be treated as categories.
             </p>
+          </div>
+
+          <div className="space-y-4 border-t pt-4">
+            <h3 className="font-medium text-sm">Blog Configuration</h3>
+            
+            <div className="space-y-2">
+              <Label htmlFor="blog-title">Blog Title (optional)</Label>
+              <Input
+                id="blog-title"
+                type="text"
+                placeholder="My Awesome Blog"
+                value={blogTitle}
+                onChange={(e) => setBlogTitle(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="blog-description">Blog Description (optional)</Label>
+              <Textarea
+                id="blog-description"
+                placeholder="A collection of thoughts and ideas about technology, programming, and life..."
+                value={blogDescription}
+                onChange={(e) => setBlogDescription(e.target.value)}
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="blog-seo">SEO Description (optional)</Label>
+              <Textarea
+                id="blog-seo"
+                placeholder="Blog about technology, programming, and life"
+                value={blogSeoDescription}
+                onChange={(e) => setBlogSeoDescription(e.target.value)}
+                rows={2}
+              />
+              <p className="text-xs text-muted-foreground">
+                Used for search engine optimization and social media previews.
+              </p>
+            </div>
           </div>
 
           <Button 

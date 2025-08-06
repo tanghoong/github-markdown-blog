@@ -72,7 +72,7 @@ export function PostList({ posts, onPostSelect }: PostListProps) {
   return (
     <div className="space-y-6">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-serif font-bold mb-2">Latest Posts</h2>
+        <h2 className="text-2xl sm:text-3xl font-serif font-bold mb-2">Latest Posts</h2>
         <p className="text-muted-foreground">
           {posts.length} post{posts.length !== 1 ? 's' : ''} available
         </p>
@@ -98,10 +98,11 @@ export function PostList({ posts, onPostSelect }: PostListProps) {
             variant={selectedCategory === null ? "default" : "outline"}
             size="sm"
             onClick={() => setSelectedCategory(null)}
-            className="mb-2"
+            className="mb-2 text-xs sm:text-sm"
           >
-            <FolderOpen size={16} className="mr-2" />
-            All Categories
+            <FolderOpen size={14} className="mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">All Categories</span>
+            <span className="sm:hidden">All</span>
           </Button>
           {categories.map((category) => (
             <Button
@@ -109,46 +110,46 @@ export function PostList({ posts, onPostSelect }: PostListProps) {
               variant={selectedCategory === category ? "default" : "outline"}
               size="sm"
               onClick={() => setSelectedCategory(category)}
-              className="mb-2 capitalize"
+              className="mb-2 capitalize text-xs sm:text-sm"
             >
-              <Folder size={16} className="mr-2" />
+              <Folder size={14} className="mr-1 sm:mr-2" />
               {category}
             </Button>
           ))}
         </div>
       )}
       
-      <div className="grid gap-6">
+      <div className="grid gap-4 lg:gap-6">
         {filteredPosts.map((post) => (
           <Card 
             key={post.sha}
-            className="p-6 cursor-pointer hover:shadow-md transition-shadow duration-200"
+            className="p-4 sm:p-6 cursor-pointer hover:shadow-md transition-shadow duration-200"
             onClick={() => onPostSelect(post)}
           >
             <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-xl font-serif font-semibold text-foreground hover:text-accent transition-colors">
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                  <h3 className="text-lg sm:text-xl font-serif font-semibold text-foreground hover:text-accent transition-colors truncate">
                     {searchQuery ? highlightSearchTerm(post.title, searchQuery) : post.title}
                   </h3>
                   {post.category && (
-                    <Badge variant="outline" className="text-xs capitalize">
+                    <Badge variant="outline" className="text-xs capitalize self-start">
                       {post.category}
                     </Badge>
                   )}
                 </div>
                 {post.excerpt && (
-                  <p className="text-muted-foreground mb-3 leading-relaxed">
+                  <p className="text-muted-foreground mb-3 leading-relaxed text-sm sm:text-base line-clamp-3">
                     {searchQuery ? highlightSearchTerm(post.excerpt, searchQuery) : post.excerpt}
                   </p>
                 )}
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-xs truncate max-w-[200px]">
                     {post.path.split('/').pop()}
                   </Badge>
                 </div>
               </div>
-              <FileText size={24} className="text-muted-foreground flex-shrink-0 mt-1" />
+              <FileText size={20} className="text-muted-foreground flex-shrink-0 mt-1 sm:w-6 sm:h-6" />
             </div>
           </Card>
         ))}
@@ -156,9 +157,9 @@ export function PostList({ posts, onPostSelect }: PostListProps) {
 
       {filteredPosts.length === 0 && selectedCategory && !searchQuery && (
         <div className="text-center py-16">
-          <Folder size={64} className="text-muted-foreground mx-auto mb-4" />
+          <Folder size={48} className="text-muted-foreground mx-auto mb-4 sm:w-16 sm:h-16" />
           <h3 className="text-lg font-serif font-semibold mb-2">No posts in this category</h3>
-          <p className="text-muted-foreground mb-4">
+          <p className="text-muted-foreground mb-4 text-sm sm:text-base">
             The "{selectedCategory}" category doesn't contain any posts yet.
           </p>
           <Button variant="outline" onClick={() => setSelectedCategory(null)}>
@@ -169,9 +170,9 @@ export function PostList({ posts, onPostSelect }: PostListProps) {
 
       {filteredPosts.length === 0 && searchQuery && (
         <div className="text-center py-16">
-          <MagnifyingGlass size={64} className="text-muted-foreground mx-auto mb-4" />
+          <MagnifyingGlass size={48} className="text-muted-foreground mx-auto mb-4 sm:w-16 sm:h-16" />
           <h3 className="text-lg font-serif font-semibold mb-2">No posts found</h3>
-          <p className="text-muted-foreground mb-4">
+          <p className="text-muted-foreground mb-4 text-sm sm:text-base px-4">
             No posts match your search for "{searchQuery}". Try different keywords or check your spelling.
           </p>
           <Button variant="outline" onClick={() => handleSearch('')}>

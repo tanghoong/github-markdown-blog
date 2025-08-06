@@ -91,4 +91,11 @@
   .font-serif {
     font-family: 'Playfair Display', serif;
   }
+  
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }

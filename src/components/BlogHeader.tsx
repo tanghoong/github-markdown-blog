@@ -10,17 +10,23 @@ interface BlogHeaderProps {
 export function BlogHeader({ repoConfig, onConfigChange }: BlogHeaderProps) {
   return (
     <header className="border-b border-border bg-card">
-      <div className="max-w-4xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <BookOpen size={32} className="text-primary" />
             <div>
               <h1 className="text-2xl font-serif font-bold text-foreground">
-                Blog
+                {repoConfig.blogTitle || `${repoConfig.owner}'s Blog`}
               </h1>
-              <p className="text-sm text-muted-foreground">
-                {repoConfig.owner}/{repoConfig.repo}
-              </p>
+              {repoConfig.blogDescription ? (
+                <p className="text-sm text-muted-foreground">
+                  {repoConfig.blogDescription}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {repoConfig.owner}/{repoConfig.repo}
+                </p>
+              )}
             </div>
           </div>
           
@@ -31,7 +37,8 @@ export function BlogHeader({ repoConfig, onConfigChange }: BlogHeaderProps) {
             className="gap-2"
           >
             <Settings size={16} />
-            Change Repository
+            <span className="hidden sm:inline">Change Repository</span>
+            <span className="sm:hidden">Settings</span>
           </Button>
         </div>
       </div>
