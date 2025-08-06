@@ -2,7 +2,7 @@ import { BlogPost, RepoConfig } from '@/App'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 
-  onPostSelect: (post: BlogP
+  onPostSelect: (post: BlogPost)
   posts: BlogPost[]
   onPostSelect: (post: BlogPost) => void
   repoConfig: RepoConfig
