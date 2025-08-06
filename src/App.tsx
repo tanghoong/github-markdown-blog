@@ -39,46 +39,71 @@ function App() {
       const octokit = new Octokit()
       const allPosts: BlogPost[] = []
       
+      // First, verify the repository exists and is accessible
+      try {
+        await octokit.rest.repos.get({
+          owner: config.owner,
+          repo: config.repo
+        })
+      } catch (repoError) {
+        throw new Error(`Repository "${config.owner}/${config.repo}" not found or not accessible. Please check the repository name and ensure it's public.`)
+      }
+      
       // Function to recursively fetch markdown files from directories
       const fetchFromDirectory = async (path: string, category?: string): Promise<void> => {
-        const { data: contents } = await octokit.rest.repos.getContent({
-          owner: config.owner,
-          repo: config.repo,
-          path: path,
-          ref: config.branch || 'main'
-        })
+        try {
+          const { data: contents } = await octokit.rest.repos.getContent({
+            owner: config.owner,
+            repo: config.repo,
+            path: path,
+            ref: config.branch || 'main'
+          })
 
-        if (!Array.isArray(contents)) return
+          if (!Array.isArray(contents)) return
 
-        // Process directories (categories) and files
-        for (const item of contents) {
-          if (item.type === 'dir') {
-            // Recursively fetch from subdirectory
-            await fetchFromDirectory(item.path, item.name)
-          } else if (item.type === 'file' && 
-                     (item.name.endsWith('.md') || item.name.endsWith('.markdown'))) {
-            // Fetch markdown file content
-            const { data: fileData } = await octokit.rest.repos.getContent({
-              owner: config.owner,
-              repo: config.repo,
-              path: item.path,
-              ref: config.branch || 'main'
-            })
+          // Process directories (categories) and files
+          for (const item of contents) {
+            if (item.type === 'dir') {
+              // Recursively fetch from subdirectory
+              await fetchFromDirectory(item.path, item.name)
+            } else if (item.type === 'file' && 
+                       (item.name.endsWith('.md') || item.name.endsWith('.markdown'))) {
+              try {
+                // Fetch markdown file content
+                const { data: fileData } = await octokit.rest.repos.getContent({
+                  owner: config.owner,
+                  repo: config.repo,
+                  path: item.path,
+                  ref: config.branch || 'main'
+                })
 
-            if ('content' in fileData) {
-              const content = atob(fileData.content)
-              const title = extractTitle(content) || item.name.replace(/\.(md|markdown)$/, '')
-              const excerpt = extractExcerpt(content)
-              
-              allPosts.push({
-                title,
-                content,
-                path: item.path,
-                sha: fileData.sha,
-                excerpt,
-                category
-              })
+                if ('content' in fileData) {
+                  const content = atob(fileData.content)
+                  const title = extractTitle(content) || item.name.replace(/\.(md|markdown)$/, '')
+                  const excerpt = extractExcerpt(content)
+                  
+                  allPosts.push({
+                    title,
+                    content,
+                    path: item.path,
+                    sha: fileData.sha,
+                    excerpt,
+                    category
+                  })
+                }
+              } catch (fileError) {
+                console.warn(`Failed to fetch file ${item.path}:`, fileError)
+                // Continue processing other files
+              }
             }
+          }
+        } catch (dirError) {
+          if (path === (config.path || '')) {
+            // If the main directory doesn't exist, throw a helpful error
+            throw new Error(`Directory "${path || 'root'}" not found in repository. Please check the path configuration.`)
+          } else {
+            console.warn(`Failed to fetch directory ${path}:`, dirError)
+            // Continue processing other directories
           }
         }
       }
@@ -86,9 +111,17 @@ function App() {
       // Start fetching from the configured path
       await fetchFromDirectory(config.path || '')
       
-      setPosts(allPosts)
+      if (allPosts.length === 0) {
+        setError(`No markdown files found in "${config.path || 'root'}" directory. Please check your repository structure.`)
+      } else {
+        setPosts(allPosts)
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch posts')
+      if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError('Failed to fetch posts. Please check your repository configuration.')
+      }
     } finally {
       setLoading(false)
     }

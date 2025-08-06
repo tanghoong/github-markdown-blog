@@ -109,12 +109,25 @@ export function RepoSetup({ onConfigSubmit }: RepoSetupProps) {
           </Button>
         </form>
 
-        <div className="mt-6 p-4 bg-muted rounded-md">
-          <p className="text-sm text-muted-foreground">
-            <strong>Note:</strong> This will access public repositories only. 
-            Organize your markdown files in the "contents" folder with subfolders as categories 
-            (e.g., contents/tech/, contents/personal/).
-          </p>
+        <div className="mt-6 space-y-3">
+          <div className="p-4 bg-muted rounded-md">
+            <p className="text-sm text-muted-foreground">
+              <strong>Note:</strong> This will access public repositories only. 
+              Organize your markdown files in the "contents" folder with subfolders as categories 
+              (e.g., contents/tech/, contents/personal/).
+            </p>
+          </div>
+          
+          <div className="p-4 bg-accent/10 border border-accent/20 rounded-md">
+            <p className="text-sm text-foreground">
+              <strong>Example:</strong> For repository "johndoe/my-blog" with posts in "contents/", use:
+            </p>
+            <ul className="text-xs text-muted-foreground mt-2 space-y-1">
+              <li>• Owner: johndoe</li>
+              <li>• Repository: my-blog</li>
+              <li>• Path: contents</li>
+            </ul>
+          </div>
         </div>
       </Card>
     </div>
