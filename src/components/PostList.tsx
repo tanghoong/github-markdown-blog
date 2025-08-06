@@ -3,7 +3,8 @@ import { BlogPost } from '../App'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { FileText, Folder, FolderOpen } from '@phosphor-icons/react'
+import { SearchBar } from './SearchBar'
+import { FileText, Folder, FolderOpen, MagnifyingGlass } from '@phosphor-icons/react'
 
 interface PostListProps {
   posts: BlogPost[]
@@ -12,14 +13,49 @@ interface PostListProps {
 
 export function PostList({ posts, onPostSelect }: PostListProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   // Get unique categories
   const categories = Array.from(new Set(posts.map(post => post.category).filter(Boolean)))
   
+  // Filter posts by search query
+  const searchFilteredPosts = searchQuery 
+    ? posts.filter(post => {
+        const titleMatch = post.title.toLowerCase().includes(searchQuery.toLowerCase())
+        const contentMatch = post.content.toLowerCase().includes(searchQuery.toLowerCase())
+        const excerptMatch = post.excerpt?.toLowerCase().includes(searchQuery.toLowerCase())
+        return titleMatch || contentMatch || excerptMatch
+      })
+    : posts
+  
   // Filter posts by category
   const filteredPosts = selectedCategory 
-    ? posts.filter(post => post.category === selectedCategory)
-    : posts
+    ? searchFilteredPosts.filter(post => post.category === selectedCategory)
+    : searchFilteredPosts
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query)
+    // Reset category filter when searching
+    if (query && selectedCategory) {
+      setSelectedCategory(null)
+    }
+  }
+
+  // Function to highlight search terms in text
+  const highlightSearchTerm = (text: string, searchTerm: string) => {
+    if (!searchTerm) return text
+    
+    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+    const parts = text.split(regex)
+    
+    return parts.map((part, index) => 
+      regex.test(part) ? (
+        <mark key={index} className="bg-accent/20 text-accent-foreground rounded px-0.5">
+          {part}
+        </mark>
+      ) : part
+    )
+  }
 
   if (posts.length === 0) {
     return (
@@ -42,8 +78,21 @@ export function PostList({ posts, onPostSelect }: PostListProps) {
         </p>
       </div>
 
+      {/* Search Bar */}
+      <div className="max-w-lg mx-auto mb-8">
+        <SearchBar 
+          onSearch={handleSearch}
+          placeholder="Search posts by title or content..."
+        />
+        {searchQuery && (
+          <div className="mt-2 text-center text-sm text-muted-foreground">
+            {filteredPosts.length} result{filteredPosts.length !== 1 ? 's' : ''} for "{searchQuery}"
+          </div>
+        )}
+      </div>
+
       {/* Category Filter */}
-      {categories.length > 0 && (
+      {categories.length > 0 && !searchQuery && (
         <div className="flex flex-wrap gap-2 justify-center mb-8">
           <Button
             variant={selectedCategory === null ? "default" : "outline"}
@@ -80,7 +129,7 @@ export function PostList({ posts, onPostSelect }: PostListProps) {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <h3 className="text-xl font-serif font-semibold text-foreground hover:text-accent transition-colors">
-                    {post.title}
+                    {searchQuery ? highlightSearchTerm(post.title, searchQuery) : post.title}
                   </h3>
                   {post.category && (
                     <Badge variant="outline" className="text-xs capitalize">
@@ -90,7 +139,7 @@ export function PostList({ posts, onPostSelect }: PostListProps) {
                 </div>
                 {post.excerpt && (
                   <p className="text-muted-foreground mb-3 leading-relaxed">
-                    {post.excerpt}
+                    {searchQuery ? highlightSearchTerm(post.excerpt, searchQuery) : post.excerpt}
                   </p>
                 )}
                 <div className="flex items-center gap-2">
@@ -105,7 +154,7 @@ export function PostList({ posts, onPostSelect }: PostListProps) {
         ))}
       </div>
 
-      {filteredPosts.length === 0 && selectedCategory && (
+      {filteredPosts.length === 0 && selectedCategory && !searchQuery && (
         <div className="text-center py-16">
           <Folder size={64} className="text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-serif font-semibold mb-2">No posts in this category</h3>
@@ -114,6 +163,19 @@ export function PostList({ posts, onPostSelect }: PostListProps) {
           </p>
           <Button variant="outline" onClick={() => setSelectedCategory(null)}>
             Show All Posts
+          </Button>
+        </div>
+      )}
+
+      {filteredPosts.length === 0 && searchQuery && (
+        <div className="text-center py-16">
+          <MagnifyingGlass size={64} className="text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-serif font-semibold mb-2">No posts found</h3>
+          <p className="text-muted-foreground mb-4">
+            No posts match your search for "{searchQuery}". Try different keywords or check your spelling.
+          </p>
+          <Button variant="outline" onClick={() => handleSearch('')}>
+            Clear Search
           </Button>
         </div>
       )}
