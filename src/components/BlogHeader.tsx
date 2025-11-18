@@ -1,13 +1,14 @@
 import { RepoConfig } from '../App'
-import { BookOpen, Settings } from '@phosphor-icons/react'
+import { BookOpen, Gear, ArrowClockwise } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 
 interface BlogHeaderProps {
   repoConfig: RepoConfig
   onConfigChange: () => void
+  onRefresh?: () => void
 }
 
-export function BlogHeader({ repoConfig, onConfigChange }: BlogHeaderProps) {
+export function BlogHeader({ repoConfig, onConfigChange, onRefresh }: BlogHeaderProps) {
   return (
     <header className="border-b border-border bg-card">
       <div className="max-w-7xl mx-auto px-6 py-6">
@@ -30,16 +31,30 @@ export function BlogHeader({ repoConfig, onConfigChange }: BlogHeaderProps) {
             </div>
           </div>
           
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={onConfigChange}
-            className="gap-2"
-          >
-            <Settings size={16} />
-            <span className="hidden sm:inline">Change Repository</span>
-            <span className="sm:hidden">Settings</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            {onRefresh && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={onRefresh}
+                className="gap-2"
+              >
+                <ArrowClockwise size={16} />
+                <span className="hidden sm:inline">Refresh</span>
+              </Button>
+            )}
+            
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={onConfigChange}
+              className="gap-2"
+            >
+              <Gear size={16} />
+              <span className="hidden sm:inline">Change Repository</span>
+              <span className="sm:hidden">Settings</span>
+            </Button>
+          </div>
         </div>
       </div>
     </header>

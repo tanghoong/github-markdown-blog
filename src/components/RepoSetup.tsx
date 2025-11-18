@@ -5,13 +5,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { GitBranch, BookOpen, Key } from '@phosphor-icons/react'
+import { GitBranch, BookOpen, Key, FolderOpen, Info } from '@phosphor-icons/react'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 interface RepoSetupProps {
   onConfigSubmit: (config: RepoConfig) => void
 }
 
 export function RepoSetup({ onConfigSubmit }: RepoSetupProps) {
+  const [contentSource, setContentSource] = useState<'github' | 'local'>('github')
   const [owner, setOwner] = useState('')
   const [repo, setRepo] = useState('')
   const [branch, setBranch] = useState('main')
@@ -25,21 +27,23 @@ export function RepoSetup({ onConfigSubmit }: RepoSetupProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!owner.trim() || !repo.trim()) {
+    // Validate based on content source
+    if (contentSource === 'github' && (!owner.trim() || !repo.trim())) {
       return
     }
 
     setIsSubmitting(true)
     
     const config: RepoConfig = {
-      owner: owner.trim(),
-      repo: repo.trim(),
+      owner: contentSource === 'github' ? owner.trim() : 'local',
+      repo: contentSource === 'github' ? repo.trim() : 'local',
       branch: branch.trim() || 'main',
       path: path.trim(),
-      blogTitle: blogTitle.trim() || `${owner.trim()}'s Blog`,
+      blogTitle: blogTitle.trim() || (contentSource === 'github' ? `${owner.trim()}'s Blog` : 'My Local Blog'),
       blogDescription: blogDescription.trim(),
       blogSeoDescription: blogSeoDescription.trim() || blogDescription.trim(),
-      githubToken: githubToken.trim()
+      githubToken: githubToken.trim(),
+      contentSource
     }
     
     onConfigSubmit(config)
@@ -53,158 +57,266 @@ export function RepoSetup({ onConfigSubmit }: RepoSetupProps) {
             <BookOpen size={48} className="text-primary" />
           </div>
           <h1 className="text-2xl font-serif font-bold mb-2">GitHub Markdown Blog</h1>
-          <p className="text-muted-foreground">
-            Connect your GitHub repository to start blogging with markdown files.
+          <p className="text-muted-foreground mb-3">
+            Connect your content source to start blogging with markdown files.
           </p>
+          <a 
+            href="https://github.com/tanghoong/github-markdown-blog/blob/main/USAGE_GUIDE.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-accent hover:underline inline-flex items-center gap-1"
+          >
+            <Info size={14} />
+            View Usage Guide
+          </a>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="owner">Repository Owner</Label>
-            <Input
-              id="owner"
-              type="text"
-              placeholder="username or organization"
-              value={owner}
-              onChange={(e) => setOwner(e.target.value)}
-              required
-            />
-          </div>
+        <Tabs value={contentSource} onValueChange={(value) => setContentSource(value as 'github' | 'local')} className="mb-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="github" className="gap-2">
+              <GitBranch size={16} />
+              GitHub
+            </TabsTrigger>
+            <TabsTrigger value="local" className="gap-2">
+              <FolderOpen size={16} />
+              Local Files
+            </TabsTrigger>
+          </TabsList>
 
-          <div className="space-y-2">
-            <Label htmlFor="repo">Repository Name</Label>
-            <Input
-              id="repo"
-              type="text"
-              placeholder="my-blog"
-              value={repo}
-              onChange={(e) => setRepo(e.target.value)}
-              required
-            />
-          </div>
+          <TabsContent value="github" className="mt-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="owner">Repository Owner</Label>
+                <Input
+                  id="owner"
+                  type="text"
+                  placeholder="username or organization"
+                  value={owner}
+                  onChange={(e) => setOwner(e.target.value)}
+                  required
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="branch">Branch (optional)</Label>
-            <Input
-              id="branch"
-              type="text"
-              placeholder="main"
-              value={branch}
-              onChange={(e) => setBranch(e.target.value)}
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="repo">Repository Name</Label>
+                <Input
+                  id="repo"
+                  type="text"
+                  placeholder="my-blog"
+                  value={repo}
+                  onChange={(e) => setRepo(e.target.value)}
+                  required
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="path">Path to Posts (optional)</Label>
-            <Input
-              id="path"
-              type="text"
-              placeholder="contents/"
-              value={path}
-              onChange={(e) => setPath(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Folder containing your blog posts. Subfolders will be treated as categories.
-            </p>
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="branch">Branch (optional)</Label>
+                <Input
+                  id="branch"
+                  type="text"
+                  placeholder="main"
+                  value={branch}
+                  onChange={(e) => setBranch(e.target.value)}
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="github-token">GitHub Token (optional but recommended)</Label>
-            <Input
-              id="github-token"
-              type="password"
-              placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-              value={githubToken}
-              onChange={(e) => setGithubToken(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Personal access token to avoid rate limits. <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Create one here</a> with 'public_repo' scope.
-            </p>
-          </div>
-
-          <div className="space-y-4 border-t pt-4">
-            <h3 className="font-medium text-sm">Blog Configuration</h3>
-            
-            <div className="space-y-2">
-              <Label htmlFor="blog-title">Blog Title (optional)</Label>
-              <Input
-                id="blog-title"
-                type="text"
-                placeholder="My Awesome Blog"
-                value={blogTitle}
-                onChange={(e) => setBlogTitle(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="blog-description">Blog Description (optional)</Label>
-              <Textarea
-                id="blog-description"
-                placeholder="A collection of thoughts and ideas about technology, programming, and life..."
-                value={blogDescription}
-                onChange={(e) => setBlogDescription(e.target.value)}
-                rows={2}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="blog-seo">SEO Description (optional)</Label>
-              <Textarea
-                id="blog-seo"
-                placeholder="Blog about technology, programming, and life"
-                value={blogSeoDescription}
-                onChange={(e) => setBlogSeoDescription(e.target.value)}
-                rows={2}
-              />
-              <p className="text-xs text-muted-foreground">
-                Used for search engine optimization and social media previews.
-              </p>
-            </div>
-          </div>
-
-          <Button 
-            type="submit" 
-            className="w-full gap-2"
-            disabled={isSubmitting || !owner.trim() || !repo.trim()}
-          >
-            <GitBranch size={16} />
-            {isSubmitting ? 'Connecting...' : 'Connect Repository'}
-          </Button>
-        </form>
-
-        <div className="mt-6 space-y-3">
-          <div className="p-4 bg-warning/20 border border-warning/30 rounded-md">
-            <div className="flex gap-2 items-start">
-              <Key size={16} className="text-warning-foreground mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-warning-foreground">Rate Limit Warning</p>
-                <p className="text-xs text-warning-foreground/80 mt-1">
-                  Without a GitHub token, you may hit rate limits (60 requests/hour). 
-                  With a token, you get 5,000 requests/hour.
+              <div className="space-y-2">
+                <Label htmlFor="path">Path to Posts (optional)</Label>
+                <Input
+                  id="path"
+                  type="text"
+                  placeholder="contents/"
+                  value={path}
+                  onChange={(e) => setPath(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Folder containing your blog posts. Subfolders will be treated as categories.
                 </p>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="github-token">GitHub Token (optional but recommended)</Label>
+                <Input
+                  id="github-token"
+                  type="password"
+                  placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                  value={githubToken}
+                  onChange={(e) => setGithubToken(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Personal access token to avoid rate limits. <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Create one here</a> with 'public_repo' scope.
+                </p>
+              </div>
+
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="font-medium text-sm">Blog Configuration</h3>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="blog-title">Blog Title (optional)</Label>
+                  <Input
+                    id="blog-title"
+                    type="text"
+                    placeholder="My Awesome Blog"
+                    value={blogTitle}
+                    onChange={(e) => setBlogTitle(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="blog-description">Blog Description (optional)</Label>
+                  <Textarea
+                    id="blog-description"
+                    placeholder="A collection of thoughts and ideas about technology, programming, and life..."
+                    value={blogDescription}
+                    onChange={(e) => setBlogDescription(e.target.value)}
+                    rows={2}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="blog-seo">SEO Description (optional)</Label>
+                  <Textarea
+                    id="blog-seo"
+                    placeholder="Blog about technology, programming, and life"
+                    value={blogSeoDescription}
+                    onChange={(e) => setBlogSeoDescription(e.target.value)}
+                    rows={2}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Used for search engine optimization and social media previews.
+                  </p>
+                </div>
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full gap-2"
+                disabled={isSubmitting || !owner.trim() || !repo.trim()}
+              >
+                <GitBranch size={16} />
+                {isSubmitting ? 'Connecting...' : 'Connect Repository'}
+              </Button>
+            </form>
+
+            <div className="mt-6 space-y-3">
+              <div className="p-4 bg-warning/20 border border-warning/30 rounded-md">
+                <div className="flex gap-2 items-start">
+                  <Key size={16} className="text-warning-foreground mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-warning-foreground">Rate Limit Warning</p>
+                    <p className="text-xs text-warning-foreground/80 mt-1">
+                      Without a GitHub token, you may hit rate limits (60 requests/hour). 
+                      With a token, you get 5,000 requests/hour.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 bg-muted rounded-md">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Note:</strong> This will access public repositories. 
+                  Organize your markdown files in the "contents" folder with subfolders as categories 
+                  (e.g., contents/tech/, contents/personal/).
+                </p>
+              </div>
+              
+              <div className="p-4 bg-accent/10 border border-accent/20 rounded-md">
+                <p className="text-sm text-foreground">
+                  <strong>Example:</strong> For repository "johndoe/my-blog" with posts in "contents/", use:
+                </p>
+                <ul className="text-xs text-muted-foreground mt-2 space-y-1">
+                  <li>• Owner: johndoe</li>
+                  <li>• Repository: my-blog</li>
+                  <li>• Path: contents</li>
+                </ul>
+              </div>
             </div>
-          </div>
-          
-          <div className="p-4 bg-muted rounded-md">
-            <p className="text-sm text-muted-foreground">
-              <strong>Note:</strong> This will access public repositories. 
-              Organize your markdown files in the "contents" folder with subfolders as categories 
-              (e.g., contents/tech/, contents/personal/).
-            </p>
-          </div>
-          
-          <div className="p-4 bg-accent/10 border border-accent/20 rounded-md">
-            <p className="text-sm text-foreground">
-              <strong>Example:</strong> For repository "johndoe/my-blog" with posts in "contents/", use:
-            </p>
-            <ul className="text-xs text-muted-foreground mt-2 space-y-1">
-              <li>• Owner: johndoe</li>
-              <li>• Repository: my-blog</li>
-              <li>• Path: contents</li>
-            </ul>
-          </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="local" className="mt-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="p-4 bg-accent/10 border border-accent/20 rounded-md">
+                <div className="flex gap-2 items-start">
+                  <FolderOpen size={20} className="text-accent mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">Local File System Access</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      This will prompt you to select a folder from your computer containing markdown files.
+                      Your files stay on your device and are read directly by your browser.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="font-medium text-sm">Blog Configuration</h3>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="local-blog-title">Blog Title (optional)</Label>
+                  <Input
+                    id="local-blog-title"
+                    type="text"
+                    placeholder="My Local Blog"
+                    value={blogTitle}
+                    onChange={(e) => setBlogTitle(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="local-blog-description">Blog Description (optional)</Label>
+                  <Textarea
+                    id="local-blog-description"
+                    placeholder="A personal blog about my thoughts and experiences..."
+                    value={blogDescription}
+                    onChange={(e) => setBlogDescription(e.target.value)}
+                    rows={2}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="local-blog-seo">SEO Description (optional)</Label>
+                  <Textarea
+                    id="local-blog-seo"
+                    placeholder="Personal blog about life and technology"
+                    value={blogSeoDescription}
+                    onChange={(e) => setBlogSeoDescription(e.target.value)}
+                    rows={2}
+                  />
+                </div>
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full gap-2"
+                disabled={isSubmitting}
+              >
+                <FolderOpen size={16} />
+                {isSubmitting ? 'Opening...' : 'Select Folder'}
+              </Button>
+            </form>
+
+            <div className="mt-6 space-y-3">
+              <div className="p-4 bg-muted rounded-md">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Browser Compatibility:</strong> This feature requires a modern browser with 
+                  File System Access API support (Chrome, Edge, Opera). Your files are read locally 
+                  and never uploaded to any server.
+                </p>
+              </div>
+              
+              <div className="p-4 bg-accent/10 border border-accent/20 rounded-md">
+                <p className="text-sm text-foreground">
+                  <strong>File Organization:</strong> Organize your markdown files in folders:
+                </p>
+                <ul className="text-xs text-muted-foreground mt-2 space-y-1">
+                  <li>• Root folder: Contains all your markdown files</li>
+                  <li>• Subfolders: Automatically treated as categories</li>
+                  <li>• Supported: .md and .markdown files</li>
+                </ul>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </Card>
     </div>
   )
