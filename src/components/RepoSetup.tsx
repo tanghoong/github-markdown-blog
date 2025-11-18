@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { GitBranch, BookOpen, Key, FolderOpen } from '@phosphor-icons/react'
+import { GitBranch, BookOpen, Key, FolderOpen, Info } from '@phosphor-icons/react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 interface RepoSetupProps {
@@ -57,9 +57,18 @@ export function RepoSetup({ onConfigSubmit }: RepoSetupProps) {
             <BookOpen size={48} className="text-primary" />
           </div>
           <h1 className="text-2xl font-serif font-bold mb-2">GitHub Markdown Blog</h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-3">
             Connect your content source to start blogging with markdown files.
           </p>
+          <a 
+            href="https://github.com/tanghoong/github-markdown-blog/blob/main/USAGE_GUIDE.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-accent hover:underline inline-flex items-center gap-1"
+          >
+            <Info size={14} />
+            View Usage Guide
+          </a>
         </div>
 
         <Tabs value={contentSource} onValueChange={(value) => setContentSource(value as 'github' | 'local')} className="mb-6">
