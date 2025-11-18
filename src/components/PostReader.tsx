@@ -1,5 +1,5 @@
 import { BlogPost, RepoConfig } from '../App'
-import { ArrowLeft, ExternalLink } from '@phosphor-icons/react'
+import { ArrowLeft, ArrowSquareOut } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -43,7 +43,7 @@ export function PostReader({ post, onBack, repoConfig }: PostReaderProps) {
             >
               <span className="hidden sm:inline">View on GitHub</span>
               <span className="sm:hidden">GitHub</span>
-              <ExternalLink size={14} />
+              <ArrowSquareOut size={14} />
             </a>
           </div>
         </div>

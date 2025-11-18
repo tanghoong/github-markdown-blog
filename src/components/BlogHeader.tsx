@@ -1,5 +1,5 @@
 import { RepoConfig } from '../App'
-import { BookOpen, Settings } from '@phosphor-icons/react'
+import { BookOpen, Gear } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 
 interface BlogHeaderProps {
@@ -36,7 +36,7 @@ export function BlogHeader({ repoConfig, onConfigChange }: BlogHeaderProps) {
             onClick={onConfigChange}
             className="gap-2"
           >
-            <Settings size={16} />
+            <Gear size={16} />
             <span className="hidden sm:inline">Change Repository</span>
             <span className="sm:hidden">Settings</span>
           </Button>
