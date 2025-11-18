@@ -9,7 +9,7 @@ import { BlogSidebar } from './components/BlogSidebar'
 import { BlogFooter } from './components/BlogFooter'
 import { Button } from '@/components/ui/button'
 import { List, X } from '@phosphor-icons/react'
-import { getContentProvider } from './lib/contentProviders'
+import { getContentProvider, clearCache } from './lib/contentProviders'
 
 export interface BlogPost {
   title: string
@@ -109,7 +109,14 @@ function App() {
     <div className="min-h-screen bg-background flex flex-col">
       <BlogHeader 
         repoConfig={repoConfig} 
-        onConfigChange={() => setRepoConfig(null)}
+        onConfigChange={() => {
+          clearCache()
+          setRepoConfig(null)
+        }}
+        onRefresh={() => {
+          clearCache()
+          fetchPosts(repoConfig)
+        }}
       />
       
       <div className="flex-1 flex">

@@ -7,6 +7,48 @@ export interface ContentProvider {
   description: string
 }
 
+// Simple in-memory cache for posts
+interface CacheEntry {
+  posts: BlogPost[]
+  timestamp: number
+  key: string
+}
+
+const postCache = new Map<string, CacheEntry>()
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
+function getCacheKey(config: RepoConfig): string {
+  if (config.contentSource === 'local') {
+    return 'local-files'
+  }
+  return `github-${config.owner}-${config.repo}-${config.branch || 'main'}-${config.path || ''}`
+}
+
+function getCachedPosts(config: RepoConfig): BlogPost[] | null {
+  const key = getCacheKey(config)
+  const entry = postCache.get(key)
+  
+  if (entry && Date.now() - entry.timestamp < CACHE_DURATION) {
+    console.log('Using cached posts')
+    return entry.posts
+  }
+  
+  return null
+}
+
+function setCachedPosts(config: RepoConfig, posts: BlogPost[]): void {
+  const key = getCacheKey(config)
+  postCache.set(key, {
+    posts,
+    timestamp: Date.now(),
+    key
+  })
+}
+
+export function clearCache(): void {
+  postCache.clear()
+}
+
 // Helper functions for both providers
 export function extractTitle(content: string): string | null {
   const titleMatch = content.match(/^#\s+(.+)$/m)
@@ -26,6 +68,12 @@ export class GitHubContentProvider implements ContentProvider {
   description = 'Fetch markdown files from a GitHub repository'
 
   async fetchPosts(config: RepoConfig): Promise<BlogPost[]> {
+    // Check cache first
+    const cached = getCachedPosts(config)
+    if (cached) {
+      return cached
+    }
+
     const allPosts: BlogPost[] = []
     
     // Create Octokit instance with optional authentication
@@ -121,6 +169,9 @@ export class GitHubContentProvider implements ContentProvider {
       throw new Error(`No markdown files found in "${config.path || 'root'}" directory. Please check your repository structure.`)
     }
     
+    // Cache the results
+    setCachedPosts(config, allPosts)
+    
     return allPosts
   }
 }
@@ -131,6 +182,9 @@ export class LocalFileSystemProvider implements ContentProvider {
   description = 'Read markdown files from your local file system'
 
   async fetchPosts(config: RepoConfig): Promise<BlogPost[]> {
+    // Note: Local files shouldn't be cached as they might change frequently
+    // and we want to always show the latest content
+    
     // Check if File System Access API is available
     if (!('showDirectoryPicker' in window)) {
       throw new Error('File System Access API is not supported in your browser. Please use a modern browser like Chrome, Edge, or Opera.')
