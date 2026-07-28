@@ -21,20 +21,18 @@ Frontmatter exists, but only for overriding those defaults — pinning a post, a
 
 ## Organised by folders
 
-Subfolders become categories automatically:
+Subfolders become categories automatically. Arrange them however you like:
 
 ```
 contents/
 ├── tech/
-│   └── getting-started-with-react.md
-├── personal/
-│   └── my-journey-into-open-source.md
-├── guides/
-│   └── mastering-git-workflows.md
-└── welcome.md
+│   └── a-post-about-code.md      → category "tech"
+├── notes/
+│   └── something-shorter.md      → category "notes"
+└── welcome.md                    → no category
 ```
 
-This post sits at the root, so it has no category. The others are filed under the folder they live in.
+Right now this post is the only one here, and it sits at the root — so it has no category and the feed shows no category filters yet. They appear on their own as soon as a subfolder exists.
 
 ## Search
 
