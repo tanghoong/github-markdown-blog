@@ -114,11 +114,13 @@ If the archive grows past roughly a thousand posts and builds exceed a couple of
 
 ## Design
 
-The layout follows Threads' patterns — a 640 px single column, hairline dividers instead of card borders, an avatar rail with connector lines, compact relative timestamps, a sticky translucent top bar, and a near-black (`#101010`) dark mode. Only the layout language is borrowed; no Threads or Meta branding is used.
+The layout follows Threads' patterns — a 640 px single column, hairline dividers instead of card borders, an avatar rail with connector lines, compact relative timestamps, a sticky translucent top bar, and a two-tone palette tuned for reading — warm cream (`#faf7f1`) in light, obsidian grey (`#17191c`) in dark. Only the layout language is borrowed; no Threads or Meta branding is used.
 
 Theme resolution order: saved preference → system `prefers-color-scheme` → light. It is applied by an inline script before first paint, so there is no flash.
 
 Colours are defined once as CSS custom properties in [`src/styles/global.css`](src/styles/global.css) and consumed everywhere, including by Tailwind Typography via its `--tw-prose-*` variables.
+
+The palette deliberately avoids the `#fff`/`#000` extreme, which is fatiguing over a full article. Contrast is still comfortably above WCAG AA — body text measures 11.2:1 in light and 12.1:1 in dark, secondary text 4.5:1 and 5.1:1.
 
 > One cascade note worth keeping: the `.article` colour bindings are deliberately **not** inside `@layer components`. Tailwind's `prose` utilities live in the utilities layer, which wins over `components`, so bindings placed there are silently ignored — and dark mode renders near-black text on a near-black background. Unlayered rules beat every cascade layer.
 

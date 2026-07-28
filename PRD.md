@@ -56,17 +56,21 @@ A personal blog where writing happens in markdown files and publishing happens w
 
 ## Design direction
 
-Threads' layout language: dense but calm, generous vertical rhythm, hairlines over boxes, system font stack, near-black rather than pure black in dark mode. Type is sized for reading, not for chrome.
+Threads' layout language: dense but calm, generous vertical rhythm, hairlines over boxes, system font stack, warm off-white and obsidian grey rather than pure white and black. Type is sized for reading, not for chrome.
 
 **Colour** — a token set defined once in CSS custom properties and consumed by both the UI and the article typography.
 
-| Token | Light | Dark |
+Tuned for long-form reading rather than maximum contrast. Light is a warm cream, dark an obsidian grey; both step back from the `#fff`/`#000` extreme, which is fatiguing across a full article.
+
+| Token | Light (warm cream) | Dark (obsidian) |
 |---|---|---|
-| `--color-bg` | `#ffffff` | `#101010` |
-| `--color-bg-elevated` | `#ffffff` | `#181818` |
-| `--color-text` | `#000000` | `#f3f5f7` |
-| `--color-text-secondary` | `#999999` | `#777777` |
-| `--color-border` | `#dbdbdb` | `#2e2e2e` |
+| `--color-bg` | `#faf7f1` | `#17191c` |
+| `--color-bg-elevated` | `#f3eee4` | `#1f2226` |
+| `--color-text` | `#3a3630` | `#d8d6d1` |
+| `--color-text-secondary` | `#787163` | `#8b8a85` |
+| `--color-border` | `#e5ded1` | `#2c2f34` |
+
+Softening the palette costs no accessibility — measured against their own background, body text is 11.2:1 (light) and 12.1:1 (dark), and secondary text 4.5:1 and 5.1:1. All clear WCAG AA for body copy.
 
 **Motion** — near none. Colour transitions on hover only, and everything is disabled under `prefers-reduced-motion`.
 

@@ -96,6 +96,12 @@ const indexUrl = `${import.meta.env.BASE_URL}pagefind/pagefind.js`
     let timer
     input.addEventListener('input', () => {
       clearTimeout(timer)
+
+      // Advance synchronously on every keystroke, not when the next request
+      // starts. Otherwise clearing the field while a search is in flight lets
+      // that response come back still holding the current token and repaint
+      // results over an empty input.
+      const token = ++sequence
       const term = input.value.trim()
 
       if (!term) {
@@ -105,13 +111,11 @@ const indexUrl = `${import.meta.env.BASE_URL}pagefind/pagefind.js`
 
       timer = setTimeout(async () => {
         await load()
-        if (!pagefind) return
+        if (!pagefind || token !== sequence) return
 
-        const token = ++sequence
         const { results } = await pagefind.search(term)
         const data = await Promise.all(results.slice(0, 8).map((result) => result.data()))
 
-        // Drop responses a newer keystroke has already superseded.
         if (token === sequence) render(data)
       }, 150)
     })
