@@ -1,5 +1,8 @@
-import { defineCollection, z } from 'astro:content'
+import { defineCollection } from 'astro:content'
 import { glob } from 'astro/loaders'
+// Imported directly rather than re-exported from `astro:content`, which
+// deprecated its own `z` in Astro 7.
+import { z } from 'zod'
 
 /**
  * Posts are plain markdown files under `contents/`. Every frontmatter field is

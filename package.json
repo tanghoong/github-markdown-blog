@@ -8,6 +8,7 @@
     "prebuild": "node scripts/git-dates.mjs",
     "build": "astro build && pagefind --site dist",
     "preview": "astro preview",
+    "precheck": "node scripts/git-dates.mjs",
     "check": "astro check",
     "sync": "astro sync"
   },
@@ -18,7 +19,8 @@
     "@tailwindcss/typography": "^0.5.16",
     "@tailwindcss/vite": "^4.1.11",
     "astro": "^7.1.4",
-    "tailwindcss": "^4.1.11"
+    "tailwindcss": "^4.1.11",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
