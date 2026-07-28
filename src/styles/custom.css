@@ -1,0 +1,100 @@
+/*
+ * ─────────────────────────────────────────────────────────────────────────────
+ *  YOUR STYLES — this file is yours. Nothing else in the repo needs editing.
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * Every selector below starts with `html`, which is what makes it win: that
+ * prefix outranks the theme presets on specificity, so your value applies no
+ * matter which preset is active and no matter what order the files load in.
+ *
+ * Keep the `html` prefix when you add rules of your own. Without it, a rule
+ * here can tie with one in global.css and silently lose.
+ *
+ * Everything below is commented out, which is why the site currently looks
+ * exactly like the preset chosen in src/config.mjs. Uncomment what you want.
+ *
+ * A note on contrast: `npm run check:contrast` enforces WCAG AA on the shipped
+ * presets and will FAIL the build if one is unreadable. Overrides here are
+ * checked too, but only WARN — this is your escape hatch, so the decision
+ * stays yours. Watch the build output if you change text or background colours.
+ */
+
+/* ── 1. Colours ──────────────────────────────────────────────────────────────
+ *
+ * Six tokens, defined twice. These are the same names the whole site reads —
+ * change them here and the feed, articles, code blocks, borders, search and
+ * generated share cards all follow.
+ */
+
+/* Light mode */
+/*
+html[data-preset] {
+  --color-bg: #ffffff;
+  --color-bg-elevated: #f6f6f6;
+  --color-text: #1a1a1a;
+  --color-text-secondary: #6b6b6b;
+  --color-border: #e3e3e3;
+  --color-hover: #f0f0f0;
+}
+*/
+
+/* Dark mode */
+/*
+html[data-preset][data-theme='dark'] {
+  --color-bg: #121212;
+  --color-bg-elevated: #1c1c1c;
+  --color-text: #e8e8e8;
+  --color-text-secondary: #909090;
+  --color-border: #2a2a2a;
+  --color-hover: #202020;
+}
+*/
+
+/* ── 2. Typography ───────────────────────────────────────────────────────────
+ *
+ * The default stack is system fonts, which cost nothing to load. If you add a
+ * webfont, self-host it in public/ and add it to `font-src` in
+ * scripts/security-headers.mjs — the Content-Security-Policy blocks external
+ * font origins by design.
+ */
+/*
+html {
+  --font-sans: 'Your Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: 'Your Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+*/
+
+/* ── 3. Layout ───────────────────────────────────────────────────────────────
+ *
+ * Feed column width. Also settable from `layout.feedWidth` in src/config.mjs;
+ * this wins if you set both.
+ */
+/*
+html {
+  --container-feed: 44rem;
+}
+*/
+
+/* ── 4. Anything else ────────────────────────────────────────────────────────
+ *
+ * Ordinary CSS from here down. A few selectors worth knowing:
+ *
+ *   .article            the rendered post body
+ *   .article pre        code blocks
+ *   .heading-anchor     the # permalink beside a heading
+ *   [data-preset]       the <html> element, always present
+ *
+ * Example — a coloured left border on blockquotes:
+ */
+/*
+html .article blockquote {
+  border-left-color: var(--color-text);
+}
+*/
+
+/* Example — round the avatar less: */
+/*
+html .article img {
+  border-radius: 4px;
+}
+*/

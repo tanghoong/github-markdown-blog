@@ -9,12 +9,17 @@
  *   --color-text-secondary  >= 4.5:1   (meta text renders at 13-14px)
  *   --color-text on --color-bg-elevated >= 4.5:1  (code blocks, inputs)
  */
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const css = readFileSync(resolve(root, 'src/styles/themes.css'), 'utf8')
+
+// The owner's overrides, if any are uncommented. Checked but never fatal —
+// custom.css is an escape hatch and the choice there stays the owner's.
+const customPath = resolve(root, 'src/styles/custom.css')
+const custom = existsSync(customPath) ? readFileSync(customPath, 'utf8') : ''
 
 const AA = 4.5
 
@@ -95,6 +100,55 @@ if (failures.length > 0) {
   console.error('\n[contrast] FAILED')
   for (const failure of failures) console.error(`  ${failure}`)
   process.exit(1)
+}
+
+// Overrides in custom.css. `html[data-preset]` / `html[data-preset][data-theme='dark']`
+// are the documented selectors; anything else is left alone.
+function parseCustom(source) {
+  const stripped = source.replace(/\/\*[\s\S]*?\*\//g, '')
+  const out = []
+
+  for (const [, modifier, body] of stripped.matchAll(
+    /html\[data-preset\]([^{]*)\{([^}]*)\}/g
+  )) {
+    const tokens = {}
+    for (const [, key, value] of body.matchAll(/(--[\w-]+)\s*:\s*(#[0-9a-fA-F]{6})/g)) {
+      tokens[key] = value
+    }
+    if (Object.keys(tokens).length === 0) continue
+    out.push({ mode: modifier.includes("data-theme='dark'") ? 'dark' : 'light', tokens })
+  }
+  return out
+}
+
+const overrides = parseCustom(custom)
+
+if (overrides.length > 0) {
+  console.log('\n[contrast] custom.css overrides detected')
+
+  for (const { mode, tokens } of overrides) {
+    const base = blocks.find((b) => b.mode === mode)?.tokens ?? {}
+    const merged = { ...base, ...tokens }
+    const bg = merged['--color-bg']
+    const text = merged['--color-text']
+    const secondary = merged['--color-text-secondary']
+    if (!bg || !text || !secondary) continue
+
+    for (const [label, value] of [
+      ['text', text],
+      ['secondary', secondary],
+    ]) {
+      const ratio = contrast(value, bg)
+      const status = ratio >= AA ? 'ok' : 'BELOW AA'
+      console.log(`  ${mode.padEnd(6)} ${label.padEnd(10)} ${ratio.toFixed(2)}:1  ${status}`)
+      if (ratio < AA) {
+        console.warn(
+          `  ⚠  custom.css ${mode} ${label} is ${ratio.toFixed(2)}:1, below WCAG AA (${AA}:1).` +
+            ' Warning only — this file is yours.'
+        )
+      }
+    }
+  }
 }
 
 console.log(`\n[contrast] ${blocks.length} theme blocks pass WCAG AA`)

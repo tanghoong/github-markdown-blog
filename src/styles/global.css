@@ -9,6 +9,13 @@
    Selected by `theme` in src/config.mjs, applied as <html data-preset="...">. */
 @import './themes.css';
 
+/* Site owner's overrides.
+   @import must precede other rules, so this cannot simply be last in the file —
+   a trailing import is invalid CSS and gets dropped silently. Overrides win on
+   specificity instead: every selector in custom.css is written with an `html`
+   prefix, which outranks the preset selectors here. Ships fully commented out. */
+@import './custom.css';
+
 @theme {
   --font-sans:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'Helvetica Neue',

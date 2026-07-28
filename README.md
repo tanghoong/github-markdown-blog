@@ -92,6 +92,30 @@ All colour lives in [`src/styles/themes.css`](src/styles/themes.css) as six toke
 | `sepia` | book-like, warmest |
 | `forest` | muted green, low saturation |
 
+### Overriding without touching the presets
+
+For one-off tweaks there is [`src/styles/custom.css`](src/styles/custom.css) — a
+commented template covering every colour token (light and dark), the font stack
+and the column width. Uncomment what you want; it ships as a no-op.
+
+Every selector in it starts with `html`, which outranks the preset selectors on
+specificity, so your values win regardless of which preset is active. Keep that
+prefix on rules you add — without it a rule can tie with one in `global.css`
+and silently lose.
+
+Overrides are contrast-checked too, but only **warn**:
+
+```
+[contrast] custom.css overrides detected
+  light  secondary  1.56:1  BELOW AA
+  ⚠  Warning only — this file is yours.
+```
+
+Presets fail the build because they ship to everyone who forks; `custom.css` is
+your escape hatch, so the call stays yours.
+
+### Adding a preset
+
 To add your own, copy a block, rename it, and run:
 
 ```bash
