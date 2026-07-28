@@ -64,7 +64,7 @@ Post metadata is derived from the file itself — there is **no front matter par
 | Framework | React | 19 |
 | Build tool | Vite | 6.3.5 |
 | Language | TypeScript | 5.7 |
-| Styling | Tailwind CSS | 4.1 (`@tailwindcss/vite`) |
+| Styling | Tailwind CSS | 4.1 (`@tailwindcss/vite`; `@tailwindcss/typography` is **not** installed) |
 | Components | shadcn/ui (new-york) on Radix UI | — |
 | Markdown | `marked` | 15 |
 | GitHub API | `octokit` / `@octokit/core` | 4.x / 6.x |
@@ -94,7 +94,14 @@ There is **no test script and no test framework** installed.
 
 ## Configuration
 
-All configuration is entered in the setup screen on first load and persisted to `localStorage` under `blog-repo-config`. There are **no environment variables and no config files** — nothing is read at build time.
+All *blog* configuration — content source, repository, token, titles — is entered in the setup screen on first load and persisted to `localStorage` under `blog-repo-config`. None of it is read at build time, so the same static bundle serves any configuration.
+
+Two build-time inputs do exist, both inherited from the template:
+
+| Input | Read by | Effect |
+|---|---|---|
+| `PROJECT_ROOT` env var | `vite.config.ts` | overrides the base directory the `@/` alias resolves against; defaults to the repo root |
+| `theme.json` | `tailwind.config.js` (loaded via `@config` in `src/main.css`) | shallow-merged over the default Tailwind theme; currently an empty `{}`, so it changes nothing |
 
 ### GitHub mode
 
@@ -147,7 +154,7 @@ Verified against the current code:
 
 | Feature | Status | Notes |
 |---|---|---|
-| Markdown rendering | ✅ | `marked`, styled with Tailwind Typography classes |
+| Markdown rendering | ⚠️ | `marked` parses correctly, but the output is **unstyled** — see Known Issue #1 |
 | GitHub repository source | ✅ | public repos; private repos need a token |
 | Local folder source | ⚠️ | works on first pick; **breaks on page reload** (see Known Issues) |
 | Category grouping & filtering | ✅ | folder name = category; filter buttons in the post list |
@@ -207,7 +214,18 @@ This is a browser-only app, so every request and every secret lives in the user'
 
 ### 1. Markdown is rendered without sanitization — XSS
 
-`src/components/PostReader.tsx:84` passes raw `marked()` output into `dangerouslySetInnerHTML`. `marked` does **not** sanitize; its own `sanitize` option was removed in v5+. Any raw HTML in a markdown file — `<img src=x onerror=...>`, `<script>`, `javascript:` links — executes in the page origin.
+`src/components/PostReader.tsx:84` passes raw `marked()` output into `dangerouslySetInnerHTML`. `marked` does **not** sanitize; its own `sanitize` option was removed in v5+. Raw HTML in a markdown file is passed straight through into the DOM.
+
+Not every payload behaves the same way, which matters when reproducing this:
+
+| Payload | Behaviour |
+|---|---|
+| `<img src=x onerror=alert(1)>` | **fires automatically** on render — inline event handlers survive `innerHTML` |
+| `<svg onload=...>`, `<iframe src="javascript:...">` | **fires automatically** on render |
+| `<script>alert(1)</script>` | **inert** — HTML5 does not execute `<script>` inserted via `innerHTML` |
+| `[click me](javascript:alert(1))` | fires **only after the user clicks** the link |
+
+The event-handler cases alone are a real, no-interaction XSS in the page origin.
 
 This matters because the content source is **user-supplied at runtime**: anyone can point the app at any repository, and a hosted instance means an attacker only has to get a victim to load a link with a malicious repo configured.
 
@@ -234,7 +252,9 @@ The File System Access API is used read-only (`mode: 'read'`) and file contents 
 
 ### 5. Outbound requests
 
-The app talks to `api.github.com` (Octokit) and `fonts.googleapis.com` / `fonts.gstatic.com`. There is no telemetry and no other third-party endpoint.
+The only endpoints **hard-coded by the application** are `api.github.com` (Octokit) and `fonts.googleapis.com` / `fonts.gstatic.com`. There is no telemetry.
+
+Post content can add more. Any remote image, `<iframe>`, or other resource URL in a markdown file becomes a real browser request the moment `PostReader` renders that post — so an arbitrary third-party origin can see the reader's IP, user agent, and referrer. This applies in **local mode too**: reading a local file never uploads it, but a remote `![](https://tracker.example/pixel.png)` inside that file still phones home. A CSP with a restrictive `img-src`/`frame-src` is the practical control here.
 
 ### 6. `SECURITY.md` is upstream boilerplate
 
@@ -244,25 +264,27 @@ The current `SECURITY.md` is GitHub's template and directs reports to `opensourc
 
 Bugs and rough edges confirmed in the current code:
 
-1. **Non-ASCII content is corrupted in GitHub mode.** `contentProviders.ts:129` decodes the API's base64 payload with `atob()`, which yields Latin-1 bytes, not UTF-8. Chinese/Japanese text, accented characters, and emoji come out as mojibake. Several files in this repo's own `contents/` folder contain emoji and are affected. Local mode is unaffected (it uses `File.text()`). *Fix: decode via `TextDecoder` over the raw bytes.*
+1. **Rendered posts are unstyled — the Typography plugin is missing.** `PostReader.tsx` applies ~20 `prose-*` classes, but `@tailwindcss/typography` is neither installed nor loaded via `@plugin`, so those class names generate nothing: the built CSS contains **zero** `prose` rules. Because Tailwind's preflight also strips the browser's default heading, list and blockquote styling, post bodies render as near-flat text. *Fix: `npm i -D @tailwindcss/typography` and add `@plugin "@tailwindcss/typography";` to `src/main.css`, or write the article styles by hand.*
 
-2. **Local mode breaks on page reload.** The config is persisted but the directory handle is not, and `fetchPosts` runs from a `useEffect` on mount. `showDirectoryPicker()` requires transient user activation, so a reload throws instead of re-prompting cleanly. *Fix: persist the handle in IndexedDB with permission re-request, or gate the picker behind an explicit button.*
+2. **Non-ASCII content is corrupted in GitHub mode.** `contentProviders.ts:129` decodes the API's base64 payload with `atob()`, which yields Latin-1 bytes, not UTF-8. Chinese/Japanese text, accented characters, and emoji come out as mojibake. Several files in this repo's own `contents/` folder contain emoji and are affected. Local mode is unaffected (it uses `File.text()`). *Fix: decode via `TextDecoder` over the raw bytes.*
 
-3. **One API request per file.** `GitHubContentProvider` issues a `getContent` call for every directory *and* every markdown file. A 50-post blog burns ~55 of the 60 unauthenticated requests per hour. *Fix: use the Git Trees API (`GET /repos/{o}/{r}/git/trees/{sha}?recursive=1`) plus per-blob fetches, or fetch raw files from `raw.githubusercontent.com`.*
+3. **Local mode breaks on page reload.** The config is persisted but the directory handle is not, and `fetchPosts` runs from a `useEffect` on mount. `showDirectoryPicker()` requires transient user activation, so a reload throws instead of re-prompting cleanly. *Fix: persist the handle in IndexedDB with permission re-request, or gate the picker behind an explicit button.*
 
-4. **"View on GitHub" links are broken in local mode.** `PostReader` and `BlogFooter` build `github.com/{owner}/{repo}/...`, and local mode hardcodes `owner`/`repo` to `"local"`, producing dead links.
+4. **One API request per file.** `GitHubContentProvider` issues a `getContent` call for every directory *and* every markdown file. A 50-post blog burns ~55 of the 60 unauthenticated requests per hour. *Fix: use the Git Trees API (`GET /repos/{o}/{r}/git/trees/{sha}?recursive=1`) plus per-blob fetches, or fetch raw files from `raw.githubusercontent.com`.*
 
-5. **A real type error is hidden by the build.** `npm run build` runs `tsc -b --noCheck`, which skips type checking entirely. Running `tsc --noEmit` surfaces `src/components/PostList.tsx:112` — `string | undefined` assigned to `SetStateAction<string | null>`. Also, `tsconfig.json` enables only `strictNullChecks`, not full `strict`.
+5. **"View on GitHub" links are broken in local mode.** `PostReader` and `BlogFooter` build `github.com/{owner}/{repo}/...`, and local mode hardcodes `owner`/`repo` to `"local"`, producing dead links.
 
-6. **`npm run lint` cannot run** — the flat `eslint.config.js` that ESLint 9 requires is missing, even though ESLint and its plugins are installed.
+6. **A real type error is hidden by the build.** `npm run build` runs `tsc -b --noCheck`, which skips type checking entirely. Running `tsc --noEmit` surfaces `src/components/PostList.tsx:112` — `string | undefined` assigned to `SetStateAction<string | null>`. Also, `tsconfig.json` enables only `strictNullChecks`, not full `strict`.
 
-7. **Dead template baggage.** `package.json` is still named `spark-template`, `version` is `0.0.0`, `@github/spark` is still a declared dependency although no source file imports it, `theme.json` is an empty `{}`, `.spark-initial-sha` is a leftover marker, and `BlogFooter` still renders "Powered by GitHub Spark". Roughly a dozen heavy unused dependencies (`three`, `d3`, `recharts`, …) inflate `npm install` and the dependency-vulnerability surface.
+7. **`npm run lint` cannot run** — the flat `eslint.config.js` that ESLint 9 requires is missing, even though ESLint and its plugins are installed.
 
-8. **Bundle size.** The production bundle is ~484 KB JS / ~347 KB CSS uncompressed (~137 KB / ~66 KB gzipped) with no code splitting.
+8. **Dead template baggage.** `package.json` is still named `spark-template`, `version` is `0.0.0`, `@github/spark` is still a declared dependency although no source file imports it, `theme.json` is an empty `{}`, `.spark-initial-sha` is a leftover marker, and `BlogFooter` still renders "Powered by GitHub Spark". Roughly a dozen heavy unused dependencies (`three`, `d3`, `recharts`, …) inflate `npm install` and the dependency-vulnerability surface.
 
-9. **No CI.** `.github/` contains only `dependabot.yml` — no workflow runs build, lint, or type checks on PRs. `IMPLEMENTATION_SUMMARY.md` claims "CodeQL analysis: 0 vulnerabilities", but no CodeQL workflow exists in the repository.
+9. **Bundle size.** The production bundle is ~484 KB JS / ~347 KB CSS uncompressed (~137 KB / ~66 KB gzipped) with no code splitting.
 
-10. **`IMPLEMENTATION_SUMMARY.md` is partly inaccurate** — it states `@github/spark` was removed (still in `package.json`) and that the build has "no TypeScript compilation issues" (true only because checking is disabled).
+10. **No CI.** `.github/` contains only `dependabot.yml` — no workflow runs build, lint, or type checks on PRs. `IMPLEMENTATION_SUMMARY.md` claims "CodeQL analysis: 0 vulnerabilities", but no CodeQL workflow exists in the repository.
+
+11. **`IMPLEMENTATION_SUMMARY.md` is partly inaccurate** — it states `@github/spark` was removed (still in `package.json`) and that the build has "no TypeScript compilation issues" (true only because checking is disabled).
 
 ## Dependency Health
 
@@ -298,21 +320,24 @@ A suggested order of work, highest value first:
 3. Stop persisting the PAT in `localStorage` by default; downgrade the `repo`-scope advice in `USAGE_GUIDE.md`.
 4. Merge/verify the Dependabot security PRs (`vite`, `js-yaml`).
 
+**P0.5 — the app looks broken until this is fixed**
+5. Install and load `@tailwindcss/typography` so the `prose-*` classes in `PostReader` actually style post bodies.
+
 **P1 — make the toolchain trustworthy**
-5. Add `eslint.config.js` so `npm run lint` runs.
-6. Drop `--noCheck` from the build, fix the `PostList.tsx:112` type error, and turn on full `strict`.
-7. Add a CI workflow running install → lint → typecheck → build on every PR.
-8. Add a test runner (Vitest) and cover `extractTitle` / `extractExcerpt` / the providers.
+6. Add `eslint.config.js` so `npm run lint` runs.
+7. Drop `--noCheck` from the build, fix the `PostList.tsx:112` type error, and turn on full `strict`.
+8. Add a CI workflow running install → lint → typecheck → build on every PR.
+9. Add a test runner (Vitest) and cover `extractTitle` / `extractExcerpt` / the providers.
 
 **P2 — clean the template debris**
-9. Rename the package, set a real version, remove `@github/spark` and the unused heavy deps, delete `theme.json` / `.spark-initial-sha`, drop the "Powered by GitHub Spark" footer.
-10. Rewrite `SECURITY.md` for this project; reconcile or archive `IMPLEMENTATION_SUMMARY.md`.
+10. Rename the package, set a real version, remove `@github/spark` and the unused heavy deps, delete `theme.json` / `.spark-initial-sha`, drop the "Powered by GitHub Spark" footer.
+11. Rewrite `SECURITY.md` for this project; reconcile or archive `IMPLEMENTATION_SUMMARY.md`.
 
 **P3 — product features**
-11. Client-side routing so posts have shareable URLs and Back works.
-12. Batch the GitHub fetch via the Git Trees API to survive the rate limit.
-13. Front matter support (`gray-matter`) for real dates, tags, drafts, and explicit titles.
-14. Syntax highlighting, dark-mode toggle, pagination/lazy loading, persisted local-folder handle.
+12. Client-side routing so posts have shareable URLs and Back works.
+13. Batch the GitHub fetch via the Git Trees API to survive the rate limit.
+14. Front matter support (`gray-matter`) for real dates, tags, drafts, and explicit titles.
+15. Syntax highlighting, dark-mode toggle, pagination/lazy loading, persisted local-folder handle.
 
 ## Deployment
 
