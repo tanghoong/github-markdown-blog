@@ -8,20 +8,19 @@ export const getStaticPaths = (async () => {
   const posts = await getPosts()
   const categories = await getCategories()
 
-  return categories.map(({ name }) => ({
-    params: { category: name },
-    props: { posts: posts.filter((post) => post.category === name) },
+  return categories.map(({ name, slug }) => ({
+    params: { category: slug },
+    props: { name, posts: posts.filter((post) => post.category === name) },
   }))
 }) satisfies GetStaticPaths
 
-const { category } = Astro.params
-const { posts } = Astro.props as { posts: Post[] }
+const { name, posts } = Astro.props as { name: string; posts: Post[] }
 ---
 
-<Base title={category} description={`Posts filed under ${category}.`}>
+<Base title={name} description={`Posts filed under ${name}.`}>
   <section class="py-6">
     <p class="text-[13px] text-(--color-text-secondary)">Category</p>
-    <h1 class="mt-1 text-[24px] leading-tight font-bold tracking-tight">{category}</h1>
+    <h1 class="mt-1 text-[24px] leading-tight font-bold tracking-tight">{name}</h1>
     <p class="mt-1 text-[15px] text-(--color-text-secondary)">
       {posts.length} post{posts.length === 1 ? '' : 's'}
     </p>

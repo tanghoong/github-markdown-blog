@@ -57,13 +57,13 @@ const chip =
           All
         </span>
         {categories.map((category) => (
-          <a href={`/categories/${category.name}/`} class={chip}>
+          <a href={`/categories/${category.slug}/`} class={chip}>
             {category.name}
             <span class="ml-1 opacity-60">{category.count}</span>
           </a>
         ))}
         {tags.map((tag) => (
-          <a href={`/tags/${tag.name}/`} class={chip}>
+          <a href={`/tags/${tag.slug}/`} class={chip}>
             #{tag.name}
           </a>
         ))}

@@ -31,9 +31,18 @@
 </button>
 
 <script>
-  const button = document.getElementById('theme-toggle')
+  // Delegated from `document` rather than bound to the button.
+  //
+  // This is a bundled module script, so it executes once per full page load
+  // and never again. With view transitions the top bar — and this button with
+  // it — is replaced on every client-side navigation, which would leave a
+  // listener bound directly to the element pointing at a detached node and the
+  // toggle silently dead after the first navigation. `document` survives every
+  // swap, so one listener covers all of them.
+  document.addEventListener('click', (event) => {
+    const target = event.target as HTMLElement | null
+    if (!target?.closest('#theme-toggle')) return
 
-  button?.addEventListener('click', () => {
     const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'
     document.documentElement.dataset.theme = next
     try {

@@ -32,6 +32,15 @@ pre-paint theme bootstrap, view-transition glue, the Pagefind loader), the
 script hashes each one and emits `sha256-` sources. Editing an inline script
 changes its hash and the policy follows on the next build.
 
+**A known, benign console violation.** With view transitions enabled, Astro's
+router appends an empty `data:application/javascript,` module script after each
+navigation. `data:` is intentionally absent from `script-src` because it is a
+standard CSP bypass vector, so the browser blocks that script and logs a
+violation. This was tested against the strict policy, against a policy with
+`data:` allowed, and with no CSP at all: search, inline-script re-execution and
+copy buttons behave identically in all three. The message is noise, not a
+symptom — do not "fix" it by adding `data:` to the policy.
+
 One deliberate exception: `style-src` allows `'unsafe-inline'`. Stylesheets are
 external (`inlineStylesheets: 'never'`), but a few components set `style="..."`
 attributes and CSP cannot hash those. Style injection is a much weaker
