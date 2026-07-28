@@ -1,0 +1,33 @@
+---
+import { site } from '../config.mjs'
+
+interface Props {
+  size?: number
+}
+
+const { size = 36 } = Astro.props
+const initial = (site.title ?? '?').trim().charAt(0).toUpperCase()
+---
+
+{
+  site.avatar ? (
+    <img
+      src={site.avatar}
+      alt={site.title}
+      width={size}
+      height={size}
+      loading="lazy"
+      decoding="async"
+      class="shrink-0 rounded-full border border-(--color-border) object-cover"
+      style={`width:${size}px;height:${size}px`}
+    />
+  ) : (
+    <div
+      aria-hidden="true"
+      class="grid shrink-0 place-items-center rounded-full border border-(--color-border) bg-(--color-bg-elevated) font-semibold text-(--color-text)"
+      style={`width:${size}px;height:${size}px;font-size:${Math.round(size * 0.42)}px`}
+    >
+      {initial}
+    </div>
+  )
+}

@@ -1,71 +1,54 @@
 # Welcome to My Blog
 
-Welcome to my GitHub-powered markdown blog! This is an example of how you can use this system to create beautiful, fast-loading blog posts directly from your GitHub repository.
+This blog is a folder of markdown files in a git repository. There is no admin panel, no database, and no CMS — writing a post means creating a file, and publishing it means pushing a commit.
 
-## How It Works
+## How it works
 
-This blog system reads markdown files directly from your GitHub repository and presents them in a clean, readable format. Here's what makes it special:
+Every push triggers a build that compiles these markdown files into plain HTML. By the time you load a page, nothing is left to fetch or render: no API calls, no client-side markdown parsing, and no JavaScript framework.
 
-### Simple Setup
-Just point the blog to your GitHub repository, and it automatically discovers all your markdown files. No complex configuration needed!
+That is why pages appear instantly, and why the whole site works fine with JavaScript switched off.
 
-### Organized by Folders
-Create folders in your repository to organize posts by category. For example:
-- `tech/` for technology posts
-- `personal/` for personal reflections
-- `tutorials/` for how-to guides
+## Zero configuration
 
-### Search Functionality
-Find any post quickly by searching through titles and content. The search is real-time and highlights matching terms.
+A bare markdown file is a complete post. Everything else is inferred:
 
-## Getting Started
+- The first `# Heading` becomes the title
+- The first paragraph becomes the excerpt you see in the feed
+- The parent folder becomes the category
+- The date comes from the file's first commit
 
-1. **Create a Repository**: Set up a new GitHub repository for your blog content
-2. **Add Markdown Files**: Write your posts in markdown format
-3. **Organize in Folders**: Use subfolders to create categories
-4. **Configure the Blog**: Point this system to your repository
+Frontmatter exists, but only for overriding those defaults — pinning a post, adding tags, or marking a draft.
 
-## Writing Tips
+## Organised by folders
 
-### Use Clear Headings
-Structure your posts with clear headings to make them easy to scan and read.
-
-### Keep Excerpts Engaging
-The first paragraph of your post becomes the excerpt shown in the post list, so make it count!
-
-### Leverage Markdown Features
-Use all the markdown features you love:
-- **Bold** and *italic* text
-- `Code snippets`
-- Lists and tables
-- Links and images
-
-## Example Repository Structure
+Subfolders become categories automatically:
 
 ```
-my-blog/
-├── contents/
-│   ├── tech/
-│   │   ├── getting-started-with-react.md
-│   │   └── web-performance-tips.md
-│   ├── personal/
-│   │   ├── my-coding-journey.md
-│   │   └── work-life-balance.md
-│   └── welcome.md
+contents/
+├── tech/
+│   └── getting-started-with-react.md
+├── personal/
+│   └── my-journey-into-open-source.md
+├── guides/
+│   └── mastering-git-workflows.md
+└── welcome.md
 ```
 
-## Why This Approach?
+This post sits at the root, so it has no category. The others are filed under the folder they live in.
 
-Using GitHub as your blog's backend offers several advantages:
+## Search
 
-- **Version Control**: Track changes to your posts over time
-- **Backup**: Your content is safely stored in the cloud
-- **Collaboration**: Others can suggest edits via pull requests
-- **Portability**: Your content isn't locked into any platform
-- **Simplicity**: Write in markdown using your favorite editor
+The search box above the feed queries an index built at compile time. It runs entirely in your browser against a static file, which is why there is no search server to go down.
 
-## Ready to Start?
+## Why write this way
 
-Delete this welcome post and start adding your own content! Remember to organize your posts in folders to create categories.
+Keeping posts as files in git means the content outlives the tooling:
 
-Happy blogging! 🚀
+- **Version control** — every edit has a diff and a timestamp
+- **Portability** — plain markdown moves to any other system
+- **No lock-in** — the posts are readable without this site existing
+- **Your editor** — write wherever you already write
+
+## Ready to start?
+
+Delete this post and add your own. Drop a `.md` file into `contents/`, push, and it will be live once the build finishes.

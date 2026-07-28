@@ -1,0 +1,45 @@
+---
+import ThemeToggle from './ThemeToggle.astro'
+import { site } from '../config.mjs'
+
+const path = Astro.url.pathname
+const isHome = path === '/'
+---
+
+<header
+  class="sticky top-0 z-50 border-b border-(--color-border) bg-(--color-bg)/80 backdrop-blur-xl backdrop-saturate-150"
+>
+  <div
+    class="mx-auto flex h-[60px] w-full max-w-(--container-feed) items-center justify-between px-4 sm:px-6"
+  >
+    <div class="flex w-9 justify-start">
+      {
+        !isHome && (
+          <a
+            href="/"
+            aria-label="Back to feed"
+            class="grid size-9 place-items-center rounded-full transition-colors hover:bg-(--color-hover)"
+          >
+            <svg viewBox="0 0 24 24" fill="none" class="size-5" aria-hidden="true">
+              <path
+                d="M15 5l-7 7 7 7"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </a>
+        )
+      }
+    </div>
+
+    <a href="/" class="text-[17px] font-bold tracking-tight" aria-label={site.title}>
+      {site.title}
+    </a>
+
+    <div class="flex w-9 justify-end">
+      <ThemeToggle />
+    </div>
+  </div>
+</header>

@@ -1,86 +1,86 @@
-# GitHub Markdown Blog
+# PRD — Threads-style Markdown Blog
 
-A clean, elegant blog platform that transforms markdown files stored in your GitHub repository into a beautiful reading experience.
+## Product
 
-**Experience Qualities**: 
-1. **Effortless** - Reading and navigation should feel natural and unobtrusive
-2. **Focused** - Content takes center stage with minimal distractions
-3. **Professional** - Clean typography and layout that respects the written word
+A personal blog where writing happens in markdown files and publishing happens with `git push`. Content lives in the repository; the site is compiled to static HTML at build time. Readers get a Threads-like feed.
 
-**Complexity Level**: Light Application (multiple features with basic state)
-- Fetches content from GitHub API, renders markdown, manages reading state
+**Complexity:** static content site. No backend, no database, no runtime API calls.
 
-## Essential Features
+## Experience qualities
 
-**Markdown Post Rendering**
-- Functionality: Fetches and renders markdown files from GitHub repo as blog posts
-- Purpose: Transform static markdown into a dynamic reading experience
-- Trigger: App loads or user navigates to specific post
-- Progression: Load app → Fetch repo files → Display post list → Select post → Render content
-- Success criteria: Markdown renders properly with syntax highlighting and proper formatting
+1. **Effortless to publish** — adding a file and pushing is the entire workflow. No admin UI, no CMS, no configuration per post.
+2. **Effortless to read** — content loads instantly and is legible in both themes; nothing competes with the text.
+3. **Familiar** — the feed behaves the way readers already expect a social timeline to behave.
 
-**Post Navigation**
-- Functionality: Browse between different markdown posts
-- Purpose: Allow readers to discover and navigate content easily
-- Trigger: User clicks on post in list or uses navigation controls
-- Progression: View post list → Click post title → Read content → Return to list or navigate to next
-- Success criteria: Smooth transitions between posts, clear navigation paths
+## Essential features
 
-**Repository Configuration**
-- Functionality: Allow user to specify which GitHub repo contains their blog posts
-- Purpose: Make the blog flexible to work with any GitHub repository
-- Trigger: First time setup or when changing blog source
-- Progression: Enter repo details → Validate access → Fetch content → Display posts
-- Success criteria: Successfully connects to specified repository and loads markdown files
+**Zero-configuration authoring**
+- Trigger: author adds `contents/**/*.md` and pushes.
+- Behaviour: title, excerpt, category, date and reading time are all derived if not declared. Frontmatter overrides any of them.
+- Success: a markdown file with no frontmatter renders as a complete, correctly dated post.
 
-## Edge Case Handling
+**Static compilation on push**
+- Trigger: push to `main`.
+- Progression: host clones → `npm ci` → git dates resolved → Astro builds → Pagefind indexes → deploy.
+- Success: no GitHub API call, no token, and no markdown parsing in the visitor's browser.
 
-- **Network Failures**: Graceful fallback with retry mechanism and offline indicators
-- **Invalid Markdown**: Error boundaries with helpful messages for malformed content
-- **Empty Repository**: Welcoming empty state with setup instructions
-- **Large Files**: Loading states and potential truncation for very large markdown files
-- **Rate Limiting**: GitHub API rate limit handling with user feedback
+**Threads-style feed**
+- Single 640 px column, hairline dividers, avatar rail, relative timestamps, category chips, sticky translucent top bar.
+- Success: recognisably the same interaction model, using none of Threads' branding.
 
-## Design Direction
+**Reading view**
+- Full article with build-time syntax highlighting, prev/next navigation, share, reply-via-GitHub-issue, and a link to the source file.
 
-The design should feel like a premium reading experience - think Medium or Ghost - with clean typography, generous whitespace, and focus on readability over flashy interactions.
+**Search**
+- Static index built at compile time, queried client-side, loaded lazily on first focus.
+- Success: works on any static host with no search backend.
 
-## Color Selection
+**Theming**
+- Light and dark, resolved from saved preference then system preference, applied before first paint.
 
-Analogous (adjacent colors on color wheel) - Using warm grays and blues to create a calming, readable environment that doesn't compete with content.
+## Non-goals
 
-- **Primary Color**: Deep charcoal `oklch(0.2 0.01 240)` - Communicates sophistication and readability
-- **Secondary Colors**: Warm gray `oklch(0.85 0.005 60)` for backgrounds and subtle elements
-- **Accent Color**: Soft blue `oklch(0.6 0.15 220)` for links and interactive elements
-- **Foreground/Background Pairings**: 
-  - Background (Cream White `oklch(0.98 0.01 60)`): Charcoal text `oklch(0.2 0.01 240)` - Ratio 15.8:1 ✓
-  - Card (Pure White `oklch(1 0 0)`): Charcoal text `oklch(0.2 0.01 240)` - Ratio 17.9:1 ✓
-  - Primary (Deep Charcoal `oklch(0.2 0.01 240)`): White text `oklch(1 0 0)` - Ratio 17.9:1 ✓
-  - Accent (Soft Blue `oklch(0.6 0.15 220)`): White text `oklch(1 0 0)` - Ratio 5.1:1 ✓
+- Runtime content sources. The repo is the only source of truth; there is no facility to point the site at another repository at runtime.
+- Reading local files through the browser.
+- Any feature requiring a server: real like counts, follower graphs, authenticated drafts.
+- Comment storage. Replies are delegated to GitHub.
 
-## Font Selection
+## Edge cases
 
-Typography should convey literary sophistication with excellent readability - using a serif for headings to add character and sans-serif for body text for digital clarity.
+- **No frontmatter** — everything is derived; this is the expected default, not a fallback.
+- **No H1 in the body** — the filename becomes the title.
+- **Shallow clone in CI** — git dates cannot be resolved; the script degrades to an empty map and posts render without dates rather than failing the build.
+- **No search index** (dev server, or the Pagefind step skipped) — the search field hides itself instead of erroring.
+- **Empty `contents/`** — the feed renders an explicit empty state.
+- **Non-ASCII content** — handled natively; markdown is read from disk as UTF-8, and reading time counts CJK characters individually.
 
-- **Typographic Hierarchy**: 
-  - H1 (Blog Title): Playfair Display Bold/32px/tight letter spacing
-  - H2 (Post Titles): Playfair Display SemiBold/24px/normal spacing  
-  - H3-H6 (Content Headers): Playfair Display Medium/18-14px/normal spacing
-  - Body (Post Content): Inter Regular/16px/1.6 line height
-  - Meta (Dates, Tags): Inter Medium/14px/normal spacing
+## Design direction
 
-## Animations
+Threads' layout language: dense but calm, generous vertical rhythm, hairlines over boxes, system font stack, warm off-white and obsidian grey rather than pure white and black. Type is sized for reading, not for chrome.
 
-Subtle, purposeful animations that enhance the reading flow without drawing attention - gentle fades for content loading and smooth transitions between posts.
+**Colour** — a token set defined once in CSS custom properties and consumed by both the UI and the article typography.
 
-- **Purposeful Meaning**: Motion should feel like turning pages in a well-crafted book
-- **Hierarchy of Movement**: Post transitions get primary animation focus, UI elements use minimal motion
+Tuned for long-form reading rather than maximum contrast. Light is a warm cream, dark an obsidian grey; both step back from the `#fff`/`#000` extreme, which is fatiguing across a full article.
 
-## Component Selection
+| Token | Light (warm cream) | Dark (obsidian) |
+|---|---|---|
+| `--color-bg` | `#faf7f1` | `#17191c` |
+| `--color-bg-elevated` | `#f3eee4` | `#1f2226` |
+| `--color-text` | `#3a3630` | `#d8d6d1` |
+| `--color-text-secondary` | `#787163` | `#8b8a85` |
+| `--color-border` | `#e5ded1` | `#2c2f34` |
 
-- **Components**: Card for post previews, Button for navigation, Skeleton for loading states, Badge for tags, Separator for content sections
-- **Customizations**: Custom markdown renderer component, post preview cards with typography focus
-- **States**: Buttons show subtle hover states, cards lift slightly on hover, loading skeletons match content structure
-- **Icon Selection**: BookOpen for reading, ArrowLeft/Right for navigation, GitBranch for repo connection
-- **Spacing**: Generous padding (p-8, p-6) for reading comfort, consistent gaps (gap-6, gap-4)
-- **Mobile**: Single column layout, larger touch targets, optimized reading width on all screens
+Softening the palette costs no accessibility — measured against their own background, body text is 11.2:1 (light) and 12.1:1 (dark), and secondary text 4.5:1 and 5.1:1. All clear WCAG AA for body copy.
+
+**Motion** — near none. Colour transitions on hover only, and everything is disabled under `prefers-reduced-motion`.
+
+## Performance budget
+
+| Metric | Budget | Actual |
+|---|---|---|
+| JS shipped from a framework | 0 KB | 0 KB |
+| CSS | < 50 KB | 33 KB |
+| Inline script | < 5 KB | ~1 KB |
+| Build time (13 posts) | < 30 s | 1.7 s |
+
+Any change that puts a UI framework runtime on every page fails this budget. Islands are permitted where a page genuinely needs one.

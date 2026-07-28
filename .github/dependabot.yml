@@ -1,11 +1,18 @@
 version: 2
 updates:
+  # Drops the old `devcontainers` ecosystem — there is no .devcontainer in this
+  # repository. Adds github-actions, which the build workflow now needs.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+    groups:
+      astro:
+        patterns:
+          - "astro"
+          - "@astrojs/*"
 
-  - package-ecosystem: "devcontainers"
+  - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"

@@ -1,0 +1,31 @@
+---
+import Base from '../../layouts/Base.astro'
+import PostCard from '../../components/PostCard.astro'
+import { getCategories, getPosts } from '../../lib/posts'
+
+export async function getStaticPaths() {
+  const posts = await getPosts()
+  const categories = await getCategories()
+
+  return categories.map(({ name }) => ({
+    params: { tag: name },
+    props: { posts: posts.filter((post) => post.category === name) },
+  }))
+}
+
+const { tag } = Astro.params
+const { posts } = Astro.props
+---
+
+<Base title={`#${tag}`} description={`Posts filed under ${tag}.`}>
+  <section class="py-6">
+    <h1 class="text-[24px] leading-tight font-bold tracking-tight">#{tag}</h1>
+    <p class="mt-1 text-[15px] text-(--color-text-secondary)">
+      {posts.length} post{posts.length === 1 ? '' : 's'}
+    </p>
+  </section>
+
+  <div class="border-t border-(--color-border)">
+    {posts.map((post, index) => <PostCard post={post} last={index === posts.length - 1} />)}
+  </div>
+</Base>
