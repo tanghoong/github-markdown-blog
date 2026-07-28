@@ -1,0 +1,38 @@
+---
+import type { Page } from 'astro'
+
+interface Props {
+  page: Page<unknown>
+}
+
+const { page } = Astro.props
+
+const link =
+  'rounded-full border border-(--color-border) px-4 py-2 text-[14px] font-medium transition-colors hover:bg-(--color-hover)'
+---
+
+{
+  page.lastPage > 1 && (
+    <nav class="mt-8 flex items-center justify-between gap-3" aria-label="Pagination">
+      {page.url.prev ? (
+        <a href={page.url.prev} class={link} rel="prev">
+          ← Newer
+        </a>
+      ) : (
+        <span />
+      )}
+
+      <span class="text-[13px] text-(--color-text-secondary)">
+        {page.currentPage} of {page.lastPage}
+      </span>
+
+      {page.url.next ? (
+        <a href={page.url.next} class={link} rel="next">
+          Older →
+        </a>
+      ) : (
+        <span />
+      )}
+    </nav>
+  )
+}

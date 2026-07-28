@@ -109,7 +109,61 @@ export async function getPosts(): Promise<Post[]> {
   return entries.map(toPost).sort(byFeedOrder)
 }
 
-export async function getCategories(): Promise<{ name: string; count: number }[]> {
+export interface Term {
+  /** As written in frontmatter or on the folder. */
+  name: string
+  /** URL-safe form used for routes and links. */
+  slug: string
+  count: number
+}
+
+/**
+ * URL-safe key for a taxonomy term.
+ *
+ * Tags are arbitrary strings, and several common ones are hostile to URLs:
+ * `c#` would truncate at the fragment, `c++` and `.net` need escaping, and
+ * anything with a space needs encoding. Slugifying once here — and using the
+ * result for both the generated route and every link to it — keeps the two
+ * from disagreeing.
+ */
+function slugify(value: string): string {
+  const slug = value
+    .toLowerCase()
+    .trim()
+    // Keep a readable stand-in for the two cases that would otherwise collapse
+    // to the same slug as their base language name.
+    .replace(/\+\+/g, '-plus-plus')
+    .replace(/#/g, '-sharp')
+    .replace(/[^a-z0-9一-鿿]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  // A tag of only punctuation would slugify to nothing; fall back to an
+  // encoded form so the route still exists and stays unique.
+  return slug || encodeURIComponent(value.toLowerCase())
+}
+
+/**
+ * Assigns slugs, disambiguating any that collide so two distinct terms never
+ * share a route (the second would otherwise overwrite the first).
+ */
+function withSlugs(counts: Map<string, number>): Term[] {
+  const taken = new Set<string>()
+
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([name, count]) => {
+      let slug = slugify(name)
+      if (taken.has(slug)) {
+        let n = 2
+        while (taken.has(`${slug}-${n}`)) n += 1
+        slug = `${slug}-${n}`
+      }
+      taken.add(slug)
+      return { name, slug, count }
+    })
+}
+
+export async function getCategories(): Promise<Term[]> {
   const posts = await getPosts()
   const counts = new Map<string, number>()
 
@@ -118,9 +172,74 @@ export async function getCategories(): Promise<{ name: string; count: number }[]
     counts.set(post.category, (counts.get(post.category) ?? 0) + 1)
   }
 
-  return [...counts.entries()]
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+  return withSlugs(counts)
+}
+
+/** Slug for a single term, for linking from a post to its category or tags. */
+export function termSlug(name: string): string {
+  return slugify(name)
+}
+
+/**
+ * Frontmatter tags, which are deliberately separate from categories: a
+ * category comes from the folder a post lives in and there is exactly one,
+ * while tags are declared in frontmatter and a post can carry many.
+ */
+export async function getTags(): Promise<Term[]> {
+  const posts = await getPosts()
+  const counts = new Map<string, number>()
+
+  for (const post of posts) {
+    for (const tag of post.tags) {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1)
+    }
+  }
+
+  return withSlugs(counts)
+}
+
+/**
+ * Posts grouped by year, newest first. Undated posts collect under a null year
+ * rather than being dropped, so nothing silently disappears from the archive.
+ */
+export function groupByYear(posts: Post[]): { year: number | null; posts: Post[] }[] {
+  const groups = new Map<number | null, Post[]>()
+
+  for (const post of posts) {
+    const year = post.date ? post.date.getFullYear() : null
+    const bucket = groups.get(year)
+    if (bucket) bucket.push(post)
+    else groups.set(year, [post])
+  }
+
+  return [...groups.entries()]
+    .map(([year, items]) => ({ year, posts: items }))
+    .sort((a, b) => {
+      if (a.year === null) return 1
+      if (b.year === null) return -1
+      return b.year - a.year
+    })
+}
+
+/**
+ * Posts sharing a category or tag with the given post, most overlap first.
+ * Excludes the post itself.
+ */
+export function relatedTo(posts: Post[], post: Post, limit = 3): Post[] {
+  const tags = new Set(post.tags)
+
+  return posts
+    .filter((candidate) => candidate.id !== post.id)
+    .map((candidate) => {
+      let score = 0
+      if (post.category && candidate.category === post.category) score += 2
+      for (const tag of candidate.tags) if (tags.has(tag)) score += 1
+      return { candidate, score }
+    })
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ candidate }) => candidate)
 }
 
 /** Newer and older neighbours in feed order. */

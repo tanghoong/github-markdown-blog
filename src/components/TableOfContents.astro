@@ -1,0 +1,54 @@
+---
+import type { MarkdownHeading } from 'astro'
+
+interface Props {
+  headings: MarkdownHeading[]
+  /** Below this many headings a TOC is noise rather than navigation. */
+  minHeadings: number
+}
+
+const { headings, minHeadings } = Astro.props
+
+// h1 is the page title, and anything below h3 makes the list unwieldy.
+const entries = headings.filter((heading) => heading.depth === 2 || heading.depth === 3)
+const show = entries.length >= minHeadings
+---
+
+{
+  show && (
+    <details
+      class="group mt-6 rounded-xl border border-(--color-border) bg-(--color-bg-elevated) px-4 py-3"
+      open
+    >
+      <summary class="cursor-pointer list-none text-[14px] font-semibold select-none">
+        <span class="inline-flex items-center gap-2">
+          <svg viewBox="0 0 24 24" fill="none" class="size-4 transition-transform group-open:rotate-90" aria-hidden="true">
+            <path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          On this page
+        </span>
+      </summary>
+
+      <nav aria-label="Table of contents">
+        <ul class="mt-2 space-y-1 text-[14px]">
+          {entries.map((heading) => (
+            <li class={heading.depth === 3 ? 'ml-4' : ''}>
+              <a
+                href={`#${heading.slug}`}
+                class="block py-0.5 text-(--color-text-secondary) transition-colors hover:text-(--color-text)"
+              >
+                {heading.text}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </details>
+  )
+}
+
+<style>
+  summary::-webkit-details-marker {
+    display: none;
+  }
+</style>

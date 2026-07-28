@@ -1,0 +1,106 @@
+/*
+ * Theme presets.
+ *
+ * Every preset defines the same six tokens twice — once for light, once for
+ * dark. Nothing else in the codebase hard-codes a colour, so adding a preset
+ * here is the whole job of retheming the blog.
+ *
+ * Pick one with `theme` in src/config.mjs. It is written to
+ * <html data-preset="..."> and the matching block below wins.
+ *
+ * Every value is checked by `npm run check:contrast`, which fails the build if
+ * body text drops below WCAG AA (4.5:1) or secondary text below 4.5:1 against
+ * its own background. Softening a palette is fine; making it unreadable is not.
+ *
+ * To add your own: copy a block, rename it, and run `npm run check:contrast`.
+ */
+
+/* ── cream — warm paper and obsidian. The default. ───────────────────────── */
+[data-preset='cream'] {
+  --color-bg: #faf7f1;
+  --color-bg-elevated: #f3eee4;
+  --color-text: #3a3630;
+  --color-text-secondary: #787163;
+  --color-border: #e5ded1;
+  --color-hover: #f0eadf;
+}
+[data-preset='cream'][data-theme='dark'] {
+  --color-bg: #17191c;
+  --color-bg-elevated: #1f2226;
+  --color-text: #d8d6d1;
+  --color-text-secondary: #8b8a85;
+  --color-border: #2c2f34;
+  --color-hover: #212429;
+}
+
+/* ── mono — neutral greys, closest to the original Threads look. ─────────── */
+[data-preset='mono'] {
+  --color-bg: #ffffff;
+  --color-bg-elevated: #f7f7f7;
+  --color-text: #1c1c1c;
+  --color-text-secondary: #6e6e6e;
+  --color-border: #e0e0e0;
+  --color-hover: #f2f2f2;
+}
+[data-preset='mono'][data-theme='dark'] {
+  --color-bg: #101010;
+  --color-bg-elevated: #191919;
+  --color-text: #ededed;
+  --color-text-secondary: #8a8a8a;
+  --color-border: #2b2b2b;
+  --color-hover: #1e1e1e;
+}
+
+/* ── slate — cool blue-grey, a little more editorial. ────────────────────── */
+[data-preset='slate'] {
+  --color-bg: #f8fafc;
+  --color-bg-elevated: #eef2f7;
+  --color-text: #32404f;
+  --color-text-secondary: #617387;
+  --color-border: #dde4ec;
+  --color-hover: #e9eef4;
+}
+[data-preset='slate'][data-theme='dark'] {
+  --color-bg: #141a21;
+  --color-bg-elevated: #1c242e;
+  --color-text: #d3dbe4;
+  --color-text-secondary: #8496a8;
+  --color-border: #2a333f;
+  --color-hover: #1f2833;
+}
+
+/* ── sepia — book-like, warmest of the set. ──────────────────────────────── */
+[data-preset='sepia'] {
+  --color-bg: #f6efe3;
+  --color-bg-elevated: #efe5d5;
+  --color-text: #40372a;
+  --color-text-secondary: #766952;
+  --color-border: #e0d4be;
+  --color-hover: #ece0cd;
+}
+[data-preset='sepia'][data-theme='dark'] {
+  --color-bg: #1c1813;
+  --color-bg-elevated: #262019;
+  --color-text: #e3d9c8;
+  --color-text-secondary: #948876;
+  --color-border: #342c22;
+  --color-hover: #29221a;
+}
+
+/* ── forest — muted green, low saturation so it stays calm at length. ────── */
+[data-preset='forest'] {
+  --color-bg: #f5f8f4;
+  --color-bg-elevated: #eaf0e8;
+  --color-text: #333d33;
+  --color-text-secondary: #637367;
+  --color-border: #dbe4d9;
+  --color-hover: #e6ede4;
+}
+[data-preset='forest'][data-theme='dark'] {
+  --color-bg: #141a15;
+  --color-bg-elevated: #1c241e;
+  --color-text: #d4ddd4;
+  --color-text-secondary: #839084;
+  --color-border: #29332a;
+  --color-hover: #1f281f;
+}

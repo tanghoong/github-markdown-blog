@@ -1,22 +1,26 @@
 ---
+import type { GetStaticPaths } from 'astro'
 import { render } from 'astro:content'
 import Base from '../../layouts/Base.astro'
 import Avatar from '../../components/Avatar.astro'
 import ActionRow from '../../components/ActionRow.astro'
-import { site } from '../../config.mjs'
-import { formatDate, getPosts, neighbours } from '../../lib/posts'
+import Comments from '../../components/Comments.astro'
+import TableOfContents from '../../components/TableOfContents.astro'
+import { site, features } from '../../config.mjs'
+import { formatDate, getPosts, neighbours, relatedTo, termSlug, type Post } from '../../lib/posts'
 
-export async function getStaticPaths() {
+export const getStaticPaths = (async () => {
   const posts = await getPosts()
   return posts.map((post) => ({
     params: { slug: post.slug },
     props: { post, posts },
   }))
-}
+}) satisfies GetStaticPaths
 
-const { post, posts } = Astro.props
-const { Content } = await render(post.entry)
+const { post, posts } = Astro.props as { post: Post; posts: Post[] }
+const { Content, headings } = await render(post.entry)
 const { newer, older } = neighbours(posts, post.id)
+const related = relatedTo(posts, post)
 const filePath = post.entry.filePath ?? `contents/${post.id}.md`
 ---
 
@@ -25,6 +29,7 @@ const filePath = post.entry.filePath ?? `contents/${post.id}.md`
   description={post.excerpt || site.bio}
   ogType="article"
   publishedTime={post.date}
+  ogImage={features.ogImages ? `/og/${post.slug}.png` : null}
 >
   <article data-pagefind-body>
     <header class="flex gap-3 pt-6">
@@ -35,22 +40,44 @@ const filePath = post.entry.filePath ?? `contents/${post.id}.md`
           <span class="text-(--color-text-secondary)">{site.handle}</span>
         </div>
         <div class="mt-0.5 flex flex-wrap items-center gap-x-2 text-[14px] text-(--color-text-secondary)">
-          {post.date && <time datetime={post.date.toISOString()}>{formatDate(post.date, site.locale)}</time>}
+          {post.date && (
+            <time datetime={post.date.toISOString()}>{formatDate(post.date, site.locale)}</time>
+          )}
+          {/* The separator belongs to the pair, not to the category — an
+              undated post would otherwise render a leading "· category". */}
+          {post.date && post.category && <span aria-hidden="true">·</span>}
           {post.category && (
-            <>
-              <span aria-hidden="true">·</span>
-              <a href={`/tags/${post.category}/`} class="hover:text-(--color-text)">
-                #{post.category}
-              </a>
-            </>
+            <a href={`/categories/${termSlug(post.category)}/`} class="hover:text-(--color-text)">
+              {post.category}
+            </a>
           )}
         </div>
       </div>
     </header>
 
-    <h1 class="mt-5 text-[26px] leading-[1.25] font-bold tracking-tight sm:text-[30px]" data-pagefind-meta="title">
+    <h1
+      class="mt-5 text-[26px] leading-[1.25] font-bold tracking-tight sm:text-[30px]"
+      data-pagefind-meta="title"
+    >
       {post.title}
     </h1>
+
+    {
+      post.tags.length > 0 && (
+        <div class="mt-3 flex flex-wrap gap-2">
+          {post.tags.map((tag) => (
+            <a
+              href={`/tags/${termSlug(tag)}/`}
+              class="rounded-full border border-(--color-border) px-2.5 py-0.5 text-[13px] text-(--color-text-secondary) transition-colors hover:border-(--color-text) hover:text-(--color-text)"
+            >
+              #{tag}
+            </a>
+          ))}
+        </div>
+      )
+    }
+
+    <TableOfContents headings={headings} minHeadings={features.tocMinHeadings} />
 
     <div
       class="article prose prose-neutral dark:prose-invert mt-5 max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-h2:text-[20px] prose-h3:text-[17px] prose-p:text-[16px] prose-p:leading-[1.7] prose-li:text-[16px] prose-li:leading-[1.7]"
@@ -77,12 +104,38 @@ const filePath = post.entry.filePath ?? `contents/${post.id}.md`
   </article>
 
   {
+    related.length > 0 && (
+      <section class="mt-8 border-t border-(--color-border) pt-6">
+        <h2 class="mb-3 text-[15px] font-semibold">Related</h2>
+        <ul class="space-y-1">
+          {related.map((item) => (
+            <li>
+              <a
+                href={`/posts/${item.slug}/`}
+                class="-mx-2 block rounded-lg px-2 py-2 transition-colors hover:bg-(--color-hover)"
+              >
+                <span class="block text-[15px] font-medium">{item.title}</span>
+                {item.excerpt && (
+                  <span class="mt-0.5 block truncate text-[13px] text-(--color-text-secondary)">
+                    {item.excerpt}
+                  </span>
+                )}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
     (newer || older) && (
       <nav class="mt-8 grid gap-3 sm:grid-cols-2" aria-label="More posts">
         {newer ? (
           <a
             href={`/posts/${newer.slug}/`}
             class="rounded-xl border border-(--color-border) p-4 transition-colors hover:bg-(--color-hover)"
+            rel="prev"
           >
             <span class="text-[13px] text-(--color-text-secondary)">Newer</span>
             <span class="mt-1 block text-[15px] leading-snug font-semibold">{newer.title}</span>
@@ -94,6 +147,7 @@ const filePath = post.entry.filePath ?? `contents/${post.id}.md`
           <a
             href={`/posts/${older.slug}/`}
             class="rounded-xl border border-(--color-border) p-4 transition-colors hover:bg-(--color-hover) sm:text-right"
+            rel="next"
           >
             <span class="text-[13px] text-(--color-text-secondary)">Older</span>
             <span class="mt-1 block text-[15px] leading-snug font-semibold">{older.title}</span>
@@ -102,4 +156,71 @@ const filePath = post.entry.filePath ?? `contents/${post.id}.md`
       </nav>
     )
   }
+
+  <Comments />
 </Base>
+
+{/* Adds a copy button to every code block. Hoisted, so it ships once. */}
+<script>
+  const LABEL = 'Copy'
+
+  function addCopyButtons() {
+    for (const pre of document.querySelectorAll<HTMLPreElement>('.article pre')) {
+      if (pre.querySelector('[data-copy]')) continue
+
+      pre.style.position = 'relative'
+
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.dataset.copy = ''
+      button.textContent = LABEL
+      button.setAttribute('aria-label', 'Copy code to clipboard')
+
+      button.addEventListener('click', async () => {
+        const code = pre.querySelector('code')?.textContent ?? ''
+        try {
+          await navigator.clipboard.writeText(code)
+          button.textContent = 'Copied'
+        } catch {
+          button.textContent = 'Failed'
+        }
+        setTimeout(() => (button.textContent = LABEL), 1500)
+      })
+
+      pre.append(button)
+    }
+  }
+
+  addCopyButtons()
+  // View transitions replace the article without a full page load.
+  document.addEventListener('astro:page-load', addCopyButtons)
+</script>
+
+<style is:global>
+  .article pre [data-copy] {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    border-radius: 6px;
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg);
+    color: var(--color-text-secondary);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  .article pre:hover [data-copy],
+  .article pre [data-copy]:focus-visible {
+    opacity: 1;
+  }
+
+  /* Always visible on touch devices, which never hover. */
+  @media (hover: none) {
+    .article pre [data-copy] {
+      opacity: 1;
+    }
+  }
+</style>

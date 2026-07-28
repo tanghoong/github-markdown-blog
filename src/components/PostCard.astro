@@ -1,7 +1,7 @@
 ---
 import Avatar from './Avatar.astro'
 import { site } from '../config.mjs'
-import { relativeTime, type Post } from '../lib/posts'
+import { relativeTime, termSlug, type Post } from '../lib/posts'
 
 interface Props {
   post: Post
@@ -62,12 +62,19 @@ const href = `/posts/${post.slug}/`
       {
         post.category && (
           <a
-            href={`/tags/${post.category}/`}
+            href={`/categories/${termSlug(post.category)}/`}
             class="relative z-10 hover:text-(--color-text)"
           >
-            #{post.category}
+            {post.category}
           </a>
         )
+      }
+      {
+        post.tags.slice(0, 3).map((tag) => (
+          <a href={`/tags/${termSlug(tag)}/`} class="relative z-10 hover:text-(--color-text)">
+            #{tag}
+          </a>
+        ))
       }
       <span>{post.readingMinutes} min read</span>
     </div>

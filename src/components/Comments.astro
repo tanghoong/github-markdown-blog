@@ -1,0 +1,65 @@
+---
+import { features } from '../config.mjs'
+
+const { giscus } = features
+
+/**
+ * Comments backed by GitHub Discussions.
+ *
+ * Renders nothing at all unless enabled *and* fully configured — a fork that
+ * flips `enabled: true` without pasting the IDs gets a visible hint in dev
+ * rather than a silently broken widget in production.
+ */
+const configured = Boolean(giscus.repo && giscus.repoId && giscus.categoryId)
+const show = giscus.enabled && configured
+const misconfigured = giscus.enabled && !configured
+---
+
+{
+  show && (
+    <section class="mt-10 border-t border-(--color-border) pt-6">
+      <h2 class="mb-4 text-[15px] font-semibold">Comments</h2>
+
+      <div class="giscus" />
+
+      {/*
+        `is:inline` because giscus reads its configuration from this script
+        tag's own data attributes at load time — bundling would detach them.
+      */}
+      <script
+        is:inline
+        src="https://giscus.app/client.js"
+        data-repo={giscus.repo}
+        data-repo-id={giscus.repoId}
+        data-category={giscus.category}
+        data-category-id={giscus.categoryId}
+        data-mapping={giscus.mapping}
+        data-strict="1"
+        data-reactions-enabled={giscus.reactionsEnabled ? '1' : '0'}
+        data-emit-metadata="0"
+        data-input-position="top"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        data-loading="lazy"
+        crossorigin="anonymous"
+        async
+      />
+    </section>
+  )
+}
+
+{
+  misconfigured && import.meta.env.DEV && (
+    <section class="mt-10 rounded-xl border border-(--color-border) bg-(--color-bg-elevated) p-4 text-[14px]">
+      <p class="font-semibold">Comments are enabled but not configured.</p>
+      <p class="mt-1 text-(--color-text-secondary)">
+        Set <code>repo</code>, <code>repoId</code> and <code>categoryId</code> under
+        <code>features.giscus</code> in <code>src/config.mjs</code>. Get the IDs from
+        <a class="underline" href="https://giscus.app" target="_blank" rel="noopener noreferrer">
+          giscus.app
+        </a>
+        . This notice only appears in development.
+      </p>
+    </section>
+  )
+}

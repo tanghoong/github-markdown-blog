@@ -1,14 +1,16 @@
 ---
+import { ClientRouter } from 'astro:transitions'
 import '../styles/global.css'
 import TopBar from '../components/TopBar.astro'
-import { site } from '../config.mjs'
+import { site, theme, layout, features } from '../config.mjs'
 
 interface Props {
   title?: string
   description?: string
-  /** Absolute or root-relative URL of the page, for canonical + og:url. */
   ogType?: 'website' | 'article'
   publishedTime?: Date | null
+  /** Absolute or root-relative path of a share card for this page. */
+  ogImage?: string | null
 }
 
 const {
@@ -16,14 +18,17 @@ const {
   description = site.bio,
   ogType = 'website',
   publishedTime = null,
+  ogImage = null,
 } = Astro.props
 
 const pageTitle = title ? `${title} · ${site.title}` : site.title
-const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin)
+const origin = Astro.site ?? new URL(Astro.url.origin)
+const canonical = new URL(Astro.url.pathname, origin)
+const shareCard = ogImage ? new URL(ogImage, origin) : null
 ---
 
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang={site.locale} data-theme="light" data-preset={theme} style={`--container-feed: ${layout.feedWidth}`}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -32,13 +37,18 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin)
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="alternate" type="application/rss+xml" title={site.title} href="/rss.xml" />
+    <link rel="alternate" type="application/feed+json" title={site.title} href="/feed.json" />
 
     <meta property="og:type" content={ogType} />
     <meta property="og:title" content={title ?? site.title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:site_name" content={site.title} />
-    <meta name="twitter:card" content="summary_large_image" />
+    {shareCard && <meta property="og:image" content={shareCard} />}
+    {shareCard && <meta property="og:image:width" content="1200" />}
+    {shareCard && <meta property="og:image:height" content="630" />}
+    <meta name="twitter:card" content={shareCard ? 'summary_large_image' : 'summary'} />
+    {shareCard && <meta name="twitter:image" content={shareCard} />}
     {publishedTime && (
       <meta property="article:published_time" content={publishedTime.toISOString()} />
     )}
@@ -56,6 +66,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin)
         }
       })()
     </script>
+
+    {features.viewTransitions && <ClientRouter />}
   </head>
 
   <body>
@@ -70,6 +82,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin)
         class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-(--color-border) pt-6 text-[13px] text-(--color-text-secondary)"
       >
         <span>© {new Date().getFullYear()} {site.title}</span>
+        <a class="hover:text-(--color-text)" href="/archive/">Archive</a>
         <a class="hover:text-(--color-text)" href="/rss.xml">RSS</a>
         <a
           class="hover:text-(--color-text)"
@@ -79,5 +92,22 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin)
         >
       </div>
     </footer>
+
+    {/* The theme attribute lives on <html>, which view transitions swap out.
+        Re-apply it on every navigation or the page flashes back to light. */}
+    {features.viewTransitions && (
+      <script is:inline>
+        document.addEventListener('astro:after-swap', () => {
+          try {
+            const stored = localStorage.getItem('theme')
+            const system = matchMedia('(prefers-color-scheme: dark)').matches
+            document.documentElement.dataset.theme =
+              stored === 'light' || stored === 'dark' ? stored : system ? 'dark' : 'light'
+          } catch {
+            /* ignore */
+          }
+        })
+      </script>
+    )}
   </body>
 </html>
