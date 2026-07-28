@@ -23,6 +23,12 @@ jobs:
 
       - run: npm ci
 
+      # Fails the build on a known-vulnerable dependency. Nothing here ships to
+      # the browser, but the build toolchain is still worth keeping clean, and
+      # a fork that ignores Dependabot would otherwise never find out.
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+
       - name: Type check
         run: npm run check
 
