@@ -123,6 +123,70 @@ export async function getCategories(): Promise<{ name: string; count: number }[]
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
 }
 
+/**
+ * Frontmatter tags, which are deliberately separate from categories: a
+ * category comes from the folder a post lives in and there is exactly one,
+ * while tags are declared in frontmatter and a post can carry many.
+ */
+export async function getTags(): Promise<{ name: string; count: number }[]> {
+  const posts = await getPosts()
+  const counts = new Map<string, number>()
+
+  for (const post of posts) {
+    for (const tag of post.tags) {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1)
+    }
+  }
+
+  return [...counts.entries()]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+}
+
+/**
+ * Posts grouped by year, newest first. Undated posts collect under a null year
+ * rather than being dropped, so nothing silently disappears from the archive.
+ */
+export function groupByYear(posts: Post[]): { year: number | null; posts: Post[] }[] {
+  const groups = new Map<number | null, Post[]>()
+
+  for (const post of posts) {
+    const year = post.date ? post.date.getFullYear() : null
+    const bucket = groups.get(year)
+    if (bucket) bucket.push(post)
+    else groups.set(year, [post])
+  }
+
+  return [...groups.entries()]
+    .map(([year, items]) => ({ year, posts: items }))
+    .sort((a, b) => {
+      if (a.year === null) return 1
+      if (b.year === null) return -1
+      return b.year - a.year
+    })
+}
+
+/**
+ * Posts sharing a category or tag with the given post, most overlap first.
+ * Excludes the post itself.
+ */
+export function relatedTo(posts: Post[], post: Post, limit = 3): Post[] {
+  const tags = new Set(post.tags)
+
+  return posts
+    .filter((candidate) => candidate.id !== post.id)
+    .map((candidate) => {
+      let score = 0
+      if (post.category && candidate.category === post.category) score += 2
+      for (const tag of candidate.tags) if (tags.has(tag)) score += 1
+      return { candidate, score }
+    })
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ candidate }) => candidate)
+}
+
 /** Newer and older neighbours in feed order. */
 export function neighbours(posts: Post[], id: string) {
   const index = posts.findIndex((post) => post.id === id)

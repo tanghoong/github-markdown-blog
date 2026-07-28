@@ -62,12 +62,19 @@ const href = `/posts/${post.slug}/`
       {
         post.category && (
           <a
-            href={`/tags/${post.category}/`}
+            href={`/categories/${post.category}/`}
             class="relative z-10 hover:text-(--color-text)"
           >
-            #{post.category}
+            {post.category}
           </a>
         )
+      }
+      {
+        post.tags.slice(0, 3).map((tag) => (
+          <a href={`/tags/${tag}/`} class="relative z-10 hover:text-(--color-text)">
+            #{tag}
+          </a>
+        ))
       }
       <span>{post.readingMinutes} min read</span>
     </div>

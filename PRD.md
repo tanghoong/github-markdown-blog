@@ -43,7 +43,8 @@ A personal blog where writing happens in markdown files and publishing happens w
 - Runtime content sources. The repo is the only source of truth; there is no facility to point the site at another repository at runtime.
 - Reading local files through the browser.
 - Any feature requiring a server: real like counts, follower graphs, authenticated drafts.
-- Comment storage. Replies are delegated to GitHub.
+- Comment storage. Replies are delegated to GitHub (giscus / Discussions).
+- Server-rendered anything. If a feature needs a server, it does not belong here.
 
 ## Edge cases
 
@@ -76,11 +77,14 @@ Softening the palette costs no accessibility — measured against their own back
 
 ## Performance budget
 
-| Metric | Budget | Actual |
+| Metric | Budget | Notes |
 |---|---|---|
-| JS shipped from a framework | 0 KB | 0 KB |
-| CSS | < 50 KB | 33 KB |
-| Inline script | < 5 KB | ~1 KB |
-| Build time (13 posts) | < 30 s | 1.7 s |
+| UI framework runtime | 0 KB | React/Vue/Svelte must not ship on every page |
+| CSS | < 50 KB | one external stylesheet, no inlining |
+| Navigation JS | < 8 KB | Astro prefetch + view transitions, both opt-out |
+| Other inline script | < 5 KB | theme toggle, search loader, copy buttons |
+| Build time | < 30 s for ~100 posts | OG card generation dominates |
 
 Any change that puts a UI framework runtime on every page fails this budget. Islands are permitted where a page genuinely needs one.
+
+Prefetch and view transitions are the one deliberate exception to the original zero-JS stance: they cost a few KB, are measurably nicer, and both can be turned off in `features` to return to a build with no navigation JS at all.

@@ -5,39 +5,30 @@
    by the inline script in Base.astro so there is no flash. */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
-@theme {
-  /* Tuned for long-form reading rather than maximum contrast.
-     Light is a warm cream ("奶白溫茶"), dark is an obsidian grey — both step
-     back from the #fff/#000 extreme, which is fatiguing over a full article.
-     Measured contrast against their own background:
-       light  text 11.2:1   secondary 4.5:1
-       dark   text 12.1:1   secondary 5.1:1
-     Body text stays well above WCAG AA (4.5:1) and secondary text clears it
-     too, so softening the palette costs no accessibility. */
-  --color-bg: #faf7f1;
-  --color-bg-elevated: #f3eee4;
-  --color-text: #3a3630;
-  --color-text-secondary: #787163;
-  --color-border: #e5ded1;
-  --color-hover: #f0eadf;
+/* Palettes live in one file so retheming never means touching a component.
+   Selected by `theme` in src/config.mjs, applied as <html data-preset="...">. */
+@import './themes.css';
 
+@theme {
   --font-sans:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, 'Helvetica Neue',
     'PingFang TC', 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
   --font-mono:
     ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
 
-  /* The feed column. Threads sits at 640px on desktop. */
+  /* Overridden per-site from `layout.feedWidth`; this is the fallback. */
   --container-feed: 40rem;
 }
 
-[data-theme='dark'] {
-  --color-bg: #17191c;
-  --color-bg-elevated: #1f2226;
-  --color-text: #d8d6d1;
-  --color-text-secondary: #8b8a85;
-  --color-border: #2c2f34;
-  --color-hover: #212429;
+/* Fallback palette, used only if `data-preset` is missing or names a preset
+   that does not exist — the page stays legible instead of rendering unstyled. */
+:root {
+  --color-bg: #faf7f1;
+  --color-bg-elevated: #f3eee4;
+  --color-text: #3a3630;
+  --color-text-secondary: #787163;
+  --color-border: #e5ded1;
+  --color-hover: #f0eadf;
 }
 
 @layer base {
@@ -149,6 +140,32 @@
 .article :where(blockquote p:first-of-type)::before,
 .article :where(blockquote p:last-of-type)::after {
   content: none;
+}
+
+/* Heading permalinks, added by rehype-autolink-headings. The link wraps an
+   empty span so the glyph comes from CSS and never lands in the page's text
+   content — otherwise it leaks into excerpts, search results and OG cards. */
+.article .heading-anchor {
+  margin-left: 0.4em;
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.article .heading-anchor::after {
+  content: '#';
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+.article :where(h2, h3, h4):hover .heading-anchor,
+.article .heading-anchor:focus-visible {
+  opacity: 1;
+}
+
+/* Anchor targets need clearance under the sticky top bar. */
+.article :where(h2, h3, h4) {
+  scroll-margin-top: 5rem;
 }
 
 @layer components {

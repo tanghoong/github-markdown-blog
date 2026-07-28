@@ -1,0 +1,58 @@
+---
+import Base from '../layouts/Base.astro'
+import { site } from '../config.mjs'
+import { formatDate, getPosts, groupByYear } from '../lib/posts'
+
+const posts = await getPosts()
+const years = groupByYear(posts)
+---
+
+<Base title="Archive" description={`Every post on ${site.title}, by year.`}>
+  <section class="py-6">
+    <h1 class="text-[24px] leading-tight font-bold tracking-tight">Archive</h1>
+    <p class="mt-1 text-[15px] text-(--color-text-secondary)">
+      {posts.length} post{posts.length === 1 ? '' : 's'}
+    </p>
+  </section>
+
+  {
+    years.length === 0 && (
+      <p class="border-t border-(--color-border) py-16 text-center text-[15px] text-(--color-text-secondary)">
+        Nothing archived yet.
+      </p>
+    )
+  }
+
+  {
+    years.map(({ year, posts: yearPosts }) => (
+      <section class="border-t border-(--color-border) py-6">
+        <h2 class="mb-3 text-[15px] font-semibold text-(--color-text-secondary)">
+          {year ?? 'Undated'}
+        </h2>
+        <ul class="space-y-1">
+          {yearPosts.map((post) => (
+            <li>
+              <a
+                href={`/posts/${post.slug}/`}
+                class="-mx-2 flex items-baseline gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-(--color-hover)"
+              >
+                <span class="min-w-0 flex-1 truncate text-[15px] font-medium">{post.title}</span>
+                {post.category && (
+                  <span class="hidden shrink-0 text-[13px] text-(--color-text-secondary) sm:inline">
+                    {post.category}
+                  </span>
+                )}
+                <time
+                  class="shrink-0 text-[13px] tabular-nums text-(--color-text-secondary)"
+                  datetime={post.date?.toISOString()}
+                >
+                  {formatDate(post.date, site.locale)}
+                </time>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+</Base>
