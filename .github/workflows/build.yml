@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           # scripts/git-dates.mjs reads commit history to date posts that have
           # no `date` in frontmatter. A shallow clone would give every post the
