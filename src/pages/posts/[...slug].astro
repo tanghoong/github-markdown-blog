@@ -1,0 +1,105 @@
+---
+import { render } from 'astro:content'
+import Base from '../../layouts/Base.astro'
+import Avatar from '../../components/Avatar.astro'
+import ActionRow from '../../components/ActionRow.astro'
+import { site } from '../../config.mjs'
+import { formatDate, getPosts, neighbours } from '../../lib/posts'
+
+export async function getStaticPaths() {
+  const posts = await getPosts()
+  return posts.map((post) => ({
+    params: { slug: post.slug },
+    props: { post, posts },
+  }))
+}
+
+const { post, posts } = Astro.props
+const { Content } = await render(post.entry)
+const { newer, older } = neighbours(posts, post.id)
+const filePath = post.entry.filePath ?? `contents/${post.id}.md`
+---
+
+<Base
+  title={post.title}
+  description={post.excerpt || site.bio}
+  ogType="article"
+  publishedTime={post.date}
+>
+  <article data-pagefind-body>
+    <header class="flex gap-3 pt-6">
+      <Avatar size={36} />
+      <div class="min-w-0 flex-1">
+        <div class="flex items-baseline gap-1.5 text-[15px] leading-5">
+          <span class="font-semibold">{site.title}</span>
+          <span class="text-(--color-text-secondary)">{site.handle}</span>
+        </div>
+        <div class="mt-0.5 flex flex-wrap items-center gap-x-2 text-[14px] text-(--color-text-secondary)">
+          {post.date && <time datetime={post.date.toISOString()}>{formatDate(post.date, site.locale)}</time>}
+          {post.category && (
+            <>
+              <span aria-hidden="true">·</span>
+              <a href={`/tags/${post.category}/`} class="hover:text-(--color-text)">
+                #{post.category}
+              </a>
+            </>
+          )}
+        </div>
+      </div>
+    </header>
+
+    <h1 class="mt-5 text-[26px] leading-[1.25] font-bold tracking-tight sm:text-[30px]" data-pagefind-meta="title">
+      {post.title}
+    </h1>
+
+    <div
+      class="article prose prose-neutral dark:prose-invert mt-5 max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-h2:text-[20px] prose-h3:text-[17px] prose-p:text-[16px] prose-p:leading-[1.7] prose-li:text-[16px] prose-li:leading-[1.7]"
+    >
+      <Content />
+    </div>
+
+    {
+      post.updated && (
+        <p class="mt-8 text-[13px] text-(--color-text-secondary)">
+          Last updated {formatDate(post.updated, site.locale)}
+        </p>
+      )
+    }
+
+    <div class="mt-6 border-t border-(--color-border) pt-4">
+      <ActionRow
+        slug={post.slug}
+        title={post.title}
+        readingMinutes={post.readingMinutes}
+        filePath={filePath}
+      />
+    </div>
+  </article>
+
+  {
+    (newer || older) && (
+      <nav class="mt-8 grid gap-3 sm:grid-cols-2" aria-label="More posts">
+        {newer ? (
+          <a
+            href={`/posts/${newer.slug}/`}
+            class="rounded-xl border border-(--color-border) p-4 transition-colors hover:bg-(--color-hover)"
+          >
+            <span class="text-[13px] text-(--color-text-secondary)">Newer</span>
+            <span class="mt-1 block text-[15px] leading-snug font-semibold">{newer.title}</span>
+          </a>
+        ) : (
+          <span />
+        )}
+        {older && (
+          <a
+            href={`/posts/${older.slug}/`}
+            class="rounded-xl border border-(--color-border) p-4 transition-colors hover:bg-(--color-hover) sm:text-right"
+          >
+            <span class="text-[13px] text-(--color-text-secondary)">Older</span>
+            <span class="mt-1 block text-[15px] leading-snug font-semibold">{older.title}</span>
+          </a>
+        )}
+      </nav>
+    )
+  }
+</Base>

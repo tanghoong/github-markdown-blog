@@ -1,31 +1,39 @@
-Thanks for helping make GitHub safe for everyone.
-
 # Security
 
-GitHub takes the security of our software products and services seriously, including all of the open source code repositories managed through our GitHub organizations, such as [GitHub](https://github.com/GitHub).
+## Reporting a vulnerability
 
-Even though [open source repositories are outside of the scope of our bug bounty program](https://bounty.github.com/index.html#scope) and therefore not eligible for bounty rewards, we will ensure that your finding gets passed along to the appropriate maintainers for remediation. 
+Please report security issues privately through this repository's
+[security advisory form](https://github.com/tanghoong/github-markdown-blog/security/advisories/new),
+not through public issues or pull requests.
 
-## Reporting Security Issues
+Include what you can: the affected file and commit, steps to reproduce, and the
+impact you believe it has.
 
-If you believe you have found a security vulnerability in any GitHub-owned repository, please report it to us through coordinated disclosure.
+## Threat model
 
-**Please do not report security vulnerabilities through public GitHub issues, discussions, or pull requests.**
+This is a statically generated site. There is no server, no database, no
+authentication, and no user-submitted content — every page is HTML compiled from
+markdown that lives in this repository.
 
-Instead, please send an email to opensource-security[@]github.com.
+That removes most of the usual surface by construction:
 
-Please include as much of the information listed below as you can to help us better understand and resolve the issue:
+| Concern | Status |
+|---|---|
+| XSS from post content | Content is authored in-repo and rendered at build time, never in the browser. |
+| Credential exposure | The site requires no API token or secret to build or serve. |
+| Injection / SSRF | No server, no request handling, no outbound calls at runtime. |
+| Third-party runtime requests | None. No fonts, analytics, or CDNs are loaded from external origins. |
+| Supply chain | Dependencies are build-time only; none ship to the browser. Dependabot is enabled. |
 
-  * The type of issue (e.g., buffer overflow, SQL injection, or cross-site scripting)
-  * Full paths of source file(s) related to the manifestation of the issue
-  * The location of the affected source code (tag/branch/commit or direct URL)
-  * Any special configuration required to reproduce the issue
-  * Step-by-step instructions to reproduce the issue
-  * Proof-of-concept or exploit code (if possible)
-  * Impact of the issue, including how an attacker might exploit the issue
+**What remains worth attention:**
 
-This information will help us triage your report more quickly.
-
-## Policy
-
-See [GitHub's Safe Harbor Policy](https://docs.github.com/en/site-policy/security-policies/github-bug-bounty-program-legal-safe-harbor#1-safe-harbor-terms)
+- **Markdown is trusted input.** Astro renders raw HTML embedded in markdown. That
+  is safe only as long as commit access to `contents/` is trusted. If you ever
+  accept posts by pull request from outside collaborators, sanitize at build time
+  (`rehype-sanitize`) before merging that capability.
+- **Remote assets in posts.** An image or iframe pointing at a third-party origin
+  will be fetched by the reader's browser and leaks their IP and user agent. A
+  Content-Security-Policy with a restrictive `img-src` and `frame-src`, set at the
+  host, is the control.
+- **Dependency advisories** still apply to the build environment even though
+  nothing is shipped. Keep `npm audit` clean.

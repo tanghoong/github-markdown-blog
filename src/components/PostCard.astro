@@ -1,0 +1,75 @@
+---
+import Avatar from './Avatar.astro'
+import { site } from '../config.mjs'
+import { relativeTime, type Post } from '../lib/posts'
+
+interface Props {
+  post: Post
+  /** Hides the hairline divider on the last card in a feed. */
+  last?: boolean
+}
+
+const { post, last = false } = Astro.props
+const href = `/posts/${post.slug}/`
+---
+
+<article
+  class:list={[
+    'group relative flex gap-3 py-4',
+    !last && 'border-b border-(--color-border)',
+  ]}
+>
+  <div class="flex flex-col items-center gap-2">
+    <Avatar size={36} />
+    {/* The connector line that gives a Threads feed its vertical rhythm. */}
+    {!last && <div class="w-px flex-1 bg-(--color-border)"></div>}
+  </div>
+
+  <div class="min-w-0 flex-1">
+    <div class="flex items-center gap-1.5 text-[15px] leading-5">
+      <span class="font-semibold">{site.title}</span>
+      {
+        post.pinned && (
+          <span
+            class="rounded-full border border-(--color-border) px-1.5 py-px text-[11px] font-medium text-(--color-text-secondary)"
+          >
+            Pinned
+          </span>
+        )
+      }
+      <span class="ml-auto shrink-0 text-[14px] text-(--color-text-secondary)">
+        {relativeTime(post.date)}
+      </span>
+    </div>
+
+    <h2 class="mt-0.5 text-[15px] leading-[1.45] font-semibold">
+      <a href={href} class="after:absolute after:inset-0 after:content-['']">
+        {post.title}
+      </a>
+    </h2>
+
+    {
+      post.excerpt && (
+        <p class="mt-1 text-[15px] leading-[1.45] text-(--color-text) opacity-80">
+          {post.excerpt}
+        </p>
+      )
+    }
+
+    <div
+      class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-(--color-text-secondary)"
+    >
+      {
+        post.category && (
+          <a
+            href={`/tags/${post.category}/`}
+            class="relative z-10 hover:text-(--color-text)"
+          >
+            #{post.category}
+          </a>
+        )
+      }
+      <span>{post.readingMinutes} min read</span>
+    </div>
+  </div>
+</article>

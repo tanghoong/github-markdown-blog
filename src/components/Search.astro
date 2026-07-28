@@ -1,0 +1,123 @@
+---
+/**
+ * Static search over the Pagefind index generated at build time
+ * (`pagefind --site dist`). Vanilla rather than a framework island — the whole
+ * thing is ~1 KB, loaded lazily on first focus.
+ *
+ * The index does not exist during `astro dev`, so the field hides itself rather
+ * than erroring.
+ */
+const indexUrl = `${import.meta.env.BASE_URL}pagefind/pagefind.js`
+---
+
+<div class="relative pb-4" id="search" data-index={indexUrl}>
+  <input
+    type="search"
+    id="search-input"
+    placeholder="Search posts"
+    aria-label="Search posts"
+    autocomplete="off"
+    class="w-full rounded-xl border border-(--color-border) bg-(--color-bg-elevated) px-4 py-2.5 text-[15px] text-(--color-text) placeholder:text-(--color-text-secondary) focus:outline-none focus-visible:border-(--color-text)"
+  />
+  <ul
+    id="search-results"
+    class="mt-2 hidden overflow-hidden rounded-xl border border-(--color-border) bg-(--color-bg-elevated)"
+  >
+  </ul>
+</div>
+
+{/*
+  `is:inline` is load-bearing, not a style choice. The Pagefind bundle only
+  exists in dist/ after the post-build index step, so Vite cannot resolve it.
+  A processed script gets wrapped in Vite's preload helper with a
+  `__VITE_PRELOAD__` placeholder that is never substituted for an unresolvable
+  module — it throws ReferenceError at runtime and the field silently hides.
+  `is:inline` keeps the script out of the bundler entirely, so this is a plain
+  browser dynamic import.
+*/}
+<script is:inline>
+  ;(() => {
+    const container = document.getElementById('search')
+    const input = document.getElementById('search-input')
+    const list = document.getElementById('search-results')
+    if (!container || !input || !list) return
+
+    let pagefind = null
+    let loading = null
+    let sequence = 0
+
+    const load = () => {
+      loading ??= (async () => {
+        try {
+          const module = await import(container.dataset.index)
+          await module.init?.()
+          pagefind = module
+        } catch {
+          // No index — dev server, or the pagefind step did not run.
+          container.hidden = true
+        }
+      })()
+      return loading
+    }
+
+    const escape = (value) =>
+      String(value).replace(
+        /[&<>"']/g,
+        (char) =>
+          ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]
+      )
+
+    const render = (results) => {
+      if (results.length === 0) {
+        list.classList.add('hidden')
+        return
+      }
+
+      list.innerHTML = results
+        .map(
+          (result) => `
+            <li class="border-b border-(--color-border) last:border-b-0">
+              <a href="${escape(result.url)}" class="block px-4 py-3 hover:bg-(--color-hover)">
+                <span class="block text-[15px] font-semibold">${escape(result.meta?.title ?? 'Untitled')}</span>
+                <!-- Not escaped: Pagefind escapes the source text itself and
+                     only adds <mark> tags, and the corpus is this site's own
+                     build output. Everything else here is escaped. -->
+                <span class="mt-0.5 block text-[13px] text-(--color-text-secondary) [&_mark]:bg-transparent [&_mark]:font-semibold [&_mark]:text-(--color-text)">${result.excerpt}</span>
+              </a>
+            </li>`
+        )
+        .join('')
+
+      list.classList.remove('hidden')
+    }
+
+    input.addEventListener('focus', load, { once: true })
+
+    let timer
+    input.addEventListener('input', () => {
+      clearTimeout(timer)
+      const term = input.value.trim()
+
+      if (!term) {
+        render([])
+        return
+      }
+
+      timer = setTimeout(async () => {
+        await load()
+        if (!pagefind) return
+
+        const token = ++sequence
+        const { results } = await pagefind.search(term)
+        const data = await Promise.all(results.slice(0, 8).map((result) => result.data()))
+
+        // Drop responses a newer keystroke has already superseded.
+        if (token === sequence) render(data)
+      }, 150)
+    })
+
+    document.addEventListener('click', (event) => {
+      if (!container.contains(event.target)) render([])
+    })
+  })()
+</script>
