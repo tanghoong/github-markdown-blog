@@ -1,0 +1,220 @@
+---
+import { features } from '../config.mjs'
+
+const { mailrelay } = features
+
+/**
+ * Contact form relayed through a MailRelay worker.
+ *
+ * Renders nothing unless enabled *and* fully configured, matching
+ * Comments.astro — a half-configured feature should fail visibly in dev
+ * rather than silently in production.
+ *
+ * The submit logic is deliberately an inline `is:inline` script rather
+ * than the worker's hosted embed.js. scripts/security-headers.mjs hashes
+ * every inline script into the CSP automatically, so inlining keeps
+ * `script-src` at 'self' plus hashes; loading the remote embed would mean
+ * trusting another origin for script execution to save nothing.
+ */
+const configured = Boolean(mailrelay?.workerOrigin && mailrelay?.endpointId)
+const show = mailrelay?.enabled && configured
+const misconfigured = mailrelay?.enabled && !configured
+
+const endpoint = mailrelay?.endpointId ?? ''
+const workerOrigin = mailrelay?.workerOrigin ?? ''
+const turnstileKey = mailrelay?.turnstileSiteKey ?? ''
+---
+
+{
+  show && (
+    <form
+      id="contact-form"
+      class="mt-6 space-y-4"
+      data-worker={workerOrigin}
+      data-endpoint={endpoint}
+      novalidate
+    >
+      <div>
+        <label class="mb-1 block text-[14px] font-medium" for="cf-name">
+          Name
+        </label>
+        <input
+          id="cf-name"
+          name="name"
+          type="text"
+          required
+          maxlength="100"
+          autocomplete="name"
+          class="w-full rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-[15px] outline-none focus:border-(--color-text-secondary)"
+        />
+      </div>
+
+      <div>
+        <label class="mb-1 block text-[14px] font-medium" for="cf-email">
+          Email
+        </label>
+        <input
+          id="cf-email"
+          name="email"
+          type="email"
+          required
+          maxlength="254"
+          autocomplete="email"
+          class="w-full rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-[15px] outline-none focus:border-(--color-text-secondary)"
+        />
+      </div>
+
+      <div>
+        <label class="mb-1 block text-[14px] font-medium" for="cf-subject">
+          Subject <span class="text-(--color-text-secondary)">(optional)</span>
+        </label>
+        <input
+          id="cf-subject"
+          name="subject"
+          type="text"
+          maxlength="200"
+          class="w-full rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-[15px] outline-none focus:border-(--color-text-secondary)"
+        />
+      </div>
+
+      <div>
+        <label class="mb-1 block text-[14px] font-medium" for="cf-message">
+          Message
+        </label>
+        <textarea
+          id="cf-message"
+          name="message"
+          required
+          rows="6"
+          maxlength="5000"
+          class="w-full resize-y rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-[15px] outline-none focus:border-(--color-text-secondary)"
+        />
+      </div>
+
+      {/*
+        Honeypot. Hidden from people, and from assistive technology via
+        aria-hidden + tabindex, but present in the DOM for bots that fill
+        every field they find.
+      */}
+      <div class="hidden" aria-hidden="true">
+        <label for="cf-gotcha">Leave this empty</label>
+        <input id="cf-gotcha" name="_gotcha" type="text" tabindex="-1" autocomplete="off" />
+      </div>
+
+      {turnstileKey && (
+        <div class="cf-turnstile" data-sitekey={turnstileKey} data-theme="auto" />
+      )}
+
+      <div class="flex items-center gap-3">
+        <button
+          type="submit"
+          class="rounded-lg bg-(--color-text) px-4 py-2 text-[15px] font-medium text-(--color-bg) transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          Send
+        </button>
+        <p id="cf-status" class="text-[14px]" role="status" aria-live="polite" />
+      </div>
+    </form>
+  )
+}
+
+{
+  show && turnstileKey && (
+    <script
+      is:inline
+      src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+      async
+      defer
+    />
+  )
+}
+
+{
+  show && (
+    <script is:inline>
+      {`(function () {
+  var form = document.getElementById('contact-form')
+  if (!form) return
+  var status = document.getElementById('cf-status')
+  var worker = form.dataset.worker
+  var endpoint = form.dataset.endpoint
+  var token = null
+  var fetching = false
+
+  function say(text, ok) {
+    status.textContent = text
+    status.style.color = ok ? 'var(--color-text-secondary)' : '#b91c1c'
+  }
+
+  // Fetched on first interaction rather than on page load: a reader who
+  // never touches the form costs the worker nothing, and the elapsed-time
+  // check then measures how long someone actually spent filling it in
+  // rather than how long the tab has been open.
+  function getToken() {
+    if (token || fetching) return
+    fetching = true
+    fetch(worker + '/v1/form-token/' + endpoint, { credentials: 'omit' })
+      .then(function (r) { return r.ok ? r.json() : null })
+      .then(function (t) { token = t })
+      .catch(function () {})
+      .finally(function () { fetching = false })
+  }
+  form.addEventListener('focusin', getToken, { once: true })
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault()
+    var btn = form.querySelector('[type=submit]')
+    var data = {}
+    new FormData(form).forEach(function (v, k) { data[k] = String(v) })
+    if (token) data._token = token
+    data.page_path = location.pathname
+
+    if (!data.name || !data.email || !data.message) {
+      say('Please fill in name, email and message.', false)
+      return
+    }
+
+    btn.disabled = true
+    var label = btn.textContent
+    btn.textContent = 'Sending…'
+    say('', true)
+
+    fetch(worker + '/v1/send/' + endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'omit',
+      body: JSON.stringify(data),
+    })
+      .then(function (r) { return r.json() })
+      .then(function (r) {
+        if (r.success) {
+          form.reset()
+          token = null
+          if (window.turnstile) window.turnstile.reset()
+          say('Thanks — your message is on its way.', true)
+        } else if (r.error === 'RATE_LIMITED') {
+          say('Too many attempts. Please try again in a minute.', false)
+        } else {
+          say('Something went wrong. Please try again.', false)
+        }
+      })
+      .catch(function () { say('Network error. Please try again.', false) })
+      .finally(function () { btn.disabled = false; btn.textContent = label })
+  })
+})()`}
+    </script>
+  )
+}
+
+{
+  misconfigured && import.meta.env.DEV && (
+    <section class="mt-6 rounded-xl border border-(--color-border) bg-(--color-bg-elevated) p-4 text-[14px]">
+      <p class="font-semibold">The contact form is enabled but not configured.</p>
+      <p class="mt-1 text-(--color-text-secondary)">
+        Set <code>workerOrigin</code> and <code>endpointId</code> under
+        <code>features.mailrelay</code> in <code>src/config.mjs</code>. This notice only
+        appears in development.
+      </p>
+    </section>
+  )
+}

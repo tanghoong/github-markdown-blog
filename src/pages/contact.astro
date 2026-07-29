@@ -1,0 +1,44 @@
+---
+import Base from '../layouts/Base.astro'
+import ContactForm from '../components/ContactForm.astro'
+import { features, site } from '../config.mjs'
+
+const enabled = Boolean(
+  features.mailrelay?.enabled &&
+    features.mailrelay?.workerOrigin &&
+    features.mailrelay?.endpointId
+)
+---
+
+<Base title="Contact" description={`Get in touch with ${site.title}.`}>
+  <section class="py-6">
+    <h1 class="text-[24px] leading-tight font-bold tracking-tight">Contact</h1>
+    <p class="mt-1 text-[15px] text-(--color-text-secondary)">
+      {
+        enabled
+          ? 'Send a message and it will land in my inbox. I usually reply within a few days.'
+          : 'The contact form is not currently available.'
+      }
+    </p>
+  </section>
+
+  <section class="border-t border-(--color-border) pt-6">
+    <ContactForm />
+
+    {
+      !enabled && (
+        <p class="text-[15px] text-(--color-text-secondary)">
+          In the meantime you can reach me on{' '}
+          <a
+            class="underline"
+            href={`https://github.com/${site.github.split('/')[0]}`}
+            rel="noopener noreferrer"
+          >
+            GitHub
+          </a>
+          .
+        </p>
+      )
+    }
+  </section>
+</Base>

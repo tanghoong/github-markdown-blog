@@ -65,8 +65,32 @@ for (const file of files) {
 const giscusEnabled =
   features.giscus.enabled && features.giscus.repo && features.giscus.repoId
 
-const scriptSrc = ["'self'", ...hashes, ...(giscusEnabled ? ['https://giscus.app'] : [])]
-const frameSrc = giscusEnabled ? ['https://giscus.app'] : ["'none'"]
+// The contact form posts to a MailRelay worker on another origin and
+// renders a Turnstile widget, which loads a script and an iframe from
+// challenges.cloudflare.com. Miss any of these and the form fails only in
+// production — `astro dev` never applies this policy, so the breakage does
+// not reproduce locally.
+const mailrelay = features.mailrelay ?? {}
+const mailrelayEnabled = Boolean(
+  mailrelay.enabled && mailrelay.workerOrigin && mailrelay.endpointId
+)
+const TURNSTILE = 'https://challenges.cloudflare.com'
+
+const scriptSrc = [
+  "'self'",
+  ...hashes,
+  ...(giscusEnabled ? ['https://giscus.app'] : []),
+  ...(mailrelayEnabled ? [TURNSTILE] : []),
+]
+const connectSrc = [
+  "'self'",
+  ...(mailrelayEnabled ? [mailrelay.workerOrigin, TURNSTILE] : []),
+]
+const frameSrcOrigins = [
+  ...(giscusEnabled ? ['https://giscus.app'] : []),
+  ...(mailrelayEnabled ? [TURNSTILE] : []),
+]
+const frameSrc = frameSrcOrigins.length > 0 ? frameSrcOrigins : ["'none'"]
 
 const csp = [
   `default-src 'self'`,
@@ -75,7 +99,7 @@ const csp = [
   // Post content may embed remote images; that is the author's choice.
   `img-src 'self' data: https:`,
   `font-src 'self'`,
-  `connect-src 'self'`,
+  `connect-src ${connectSrc.join(' ')}`,
   `frame-src ${frameSrc.join(' ')}`,
   `frame-ancestors 'none'`,
   `base-uri 'self'`,
@@ -117,5 +141,6 @@ await writeFile(resolve(dist, '_headers'), headers)
 
 console.log(
   `[headers] wrote dist/_headers — ${hashes.size} inline script hash(es) across ${files.length} page(s)` +
-    (giscusEnabled ? ', giscus origins allowed' : '')
+    (giscusEnabled ? ', giscus origins allowed' : '') +
+    (mailrelayEnabled ? `, mailrelay (${mailrelay.workerOrigin}) + turnstile allowed` : '')
 )

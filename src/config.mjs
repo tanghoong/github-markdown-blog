@@ -71,6 +71,29 @@ export const features = {
   },
 
   /**
+   * Contact form, relayed through a MailRelay worker.
+   *
+   * This site is statically generated, so there is no server here to hide
+   * a credential in — the browser talks to the worker directly. That is
+   * safe only because the worker checks the request Origin against a
+   * per-site whitelist and requires a Turnstile token; the endpoint id
+   * below is public by design and is not a secret.
+   *
+   * Enabling this widens the Content-Security-Policy to allow the worker
+   * origin and Turnstile — see scripts/security-headers.mjs. Leaving it
+   * off ships no extra CSP origins and no contact page at all.
+   */
+  mailrelay: {
+    enabled: false,
+    /** Deployed worker origin, no trailing slash. */
+    workerOrigin: '', // e.g. 'https://mailrelay-v2.<subdomain>.workers.dev'
+    /** Endpoint id from POST /v1/admin/endpoints. Public, not a secret. */
+    endpointId: '', // e.g. 'ep_...'
+    /** Turnstile *site* key (the public half). */
+    turnstileSiteKey: '',
+  },
+
+  /**
    * Generate a social share card per post at build time (/og/<slug>.png).
    * Costs a couple of seconds of build; nothing at runtime.
    */
