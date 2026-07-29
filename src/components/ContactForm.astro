@@ -16,7 +16,17 @@ const { mailrelay } = features
  * `script-src` at 'self' plus hashes; loading the remote embed would mean
  * trusting another origin for script execution to save nothing.
  */
-const configured = Boolean(mailrelay?.workerOrigin && mailrelay?.endpointId)
+/**
+ * The Turnstile site key is part of being configured, not an optional
+ * extra. Worker endpoints require Turnstile by default, and a form
+ * rendered without the widget sends no `cf-turnstile-response` — so every
+ * submission is refused, and refusals of that kind answer with a fake
+ * success so bots learn nothing. The visitor would be told the message
+ * was sent, every time, while nothing ever arrived.
+ */
+const configured = Boolean(
+  mailrelay?.workerOrigin && mailrelay?.endpointId && mailrelay?.turnstileSiteKey
+)
 const show = mailrelay?.enabled && configured
 const misconfigured = mailrelay?.enabled && !configured
 
@@ -101,9 +111,7 @@ const turnstileKey = mailrelay?.turnstileSiteKey ?? ''
         <input id="cf-gotcha" name="_gotcha" type="text" tabindex="-1" autocomplete="off" />
       </div>
 
-      {turnstileKey && (
-        <div class="cf-turnstile" data-sitekey={turnstileKey} data-theme="auto" />
-      )}
+      <div class="cf-turnstile" data-sitekey={turnstileKey} data-theme="auto" />
 
       <div class="flex items-center gap-3">
         <button
@@ -119,7 +127,7 @@ const turnstileKey = mailrelay?.turnstileSiteKey ?? ''
 }
 
 {
-  show && turnstileKey && (
+  show && (
     <script
       is:inline
       src="https://challenges.cloudflare.com/turnstile/v0/api.js"
@@ -139,34 +147,65 @@ const turnstileKey = mailrelay?.turnstileSiteKey ?? ''
   var worker = form.dataset.worker
   var endpoint = form.dataset.endpoint
   var token = null
-  var fetching = false
+  var pending = null
 
   function say(text, ok) {
     status.textContent = text
-    status.style.color = ok ? 'var(--color-text-secondary)' : '#b91c1c'
+    status.style.color = ok ? 'var(--color-text-secondary)' : 'var(--color-danger)'
   }
 
-  // Fetched on first interaction rather than on page load: a reader who
-  // never touches the form costs the worker nothing, and the elapsed-time
-  // check then measures how long someone actually spent filling it in
-  // rather than how long the tab has been open.
-  function getToken() {
-    if (token || fetching) return
-    fetching = true
-    fetch(worker + '/v1/form-token/' + endpoint, { credentials: 'omit' })
+  /*
+    Token lifecycle.
+
+    The worker rejects a submission with no valid token, and does so with a
+    fake success — so getting this wrong does not surface as an error, it
+    surfaces as mail that silently never arrives. Two paths have to be
+    covered: the first fetch failing (offline for a moment), and the token
+    being consumed by a successful send while the visitor stays on the page
+    to write a second message. Both must be able to acquire a new one.
+
+    Returns a promise so submit can wait rather than sending without it.
+  */
+  function ensureToken() {
+    if (token) return Promise.resolve(token)
+    if (pending) return pending
+    pending = fetch(worker + '/v1/form-token/' + endpoint, { credentials: 'omit' })
       .then(function (r) { return r.ok ? r.json() : null })
-      .then(function (t) { token = t })
-      .catch(function () {})
-      .finally(function () { fetching = false })
+      .then(function (t) { token = t; return t })
+      .catch(function () { return null })
+      .finally(function () { pending = null })
+    return pending
   }
-  form.addEventListener('focusin', getToken, { once: true })
+
+  /*
+    Warmed on interaction rather than page load: a reader who never touches
+    the form costs the worker nothing, and the elapsed-time check then
+    measures how long someone actually spent filling it in rather than how
+    long the tab has been open. Not { once: true } — if the first attempt
+    failed there has to be another chance.
+  */
+  form.addEventListener('focusin', ensureToken)
+
+  /*
+    The worker refuses a token younger than its minimum fill time, to catch
+    scripts that submit instantly. That threshold is reported by the token
+    endpoint rather than duplicated here, so the two cannot drift apart.
+    Only ever waits on the recovery path — a token warmed at focus is
+    already older than this by the time anyone finishes typing.
+  */
+  function waitUntilUsable(t) {
+    var minAge = (t && t.min_age) || 0
+    var age = Math.floor(Date.now() / 1000) - ((t && t.issued_at) || 0)
+    var remaining = minAge - age
+    if (remaining <= 0) return Promise.resolve()
+    return new Promise(function (resolve) { setTimeout(resolve, remaining * 1000) })
+  }
 
   form.addEventListener('submit', function (e) {
     e.preventDefault()
     var btn = form.querySelector('[type=submit]')
     var data = {}
     new FormData(form).forEach(function (v, k) { data[k] = String(v) })
-    if (token) data._token = token
     data.page_path = location.pathname
 
     if (!data.name || !data.email || !data.message) {
@@ -179,17 +218,26 @@ const turnstileKey = mailrelay?.turnstileSiteKey ?? ''
     btn.textContent = 'Sending…'
     say('', true)
 
-    fetch(worker + '/v1/send/' + endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'omit',
-      body: JSON.stringify(data),
-    })
+    ensureToken()
+      .then(function (t) {
+        if (!t) throw new Error('no-token')
+        data._token = t
+        return waitUntilUsable(t)
+      })
+      .then(function () {
+        return fetch(worker + '/v1/send/' + endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'omit',
+          body: JSON.stringify(data),
+        })
+      })
       .then(function (r) { return r.json() })
       .then(function (r) {
+        // The token is single-use, so it is spent either way.
+        token = null
         if (r.success) {
           form.reset()
-          token = null
           if (window.turnstile) window.turnstile.reset()
           say('Thanks — your message is on its way.', true)
         } else if (r.error === 'RATE_LIMITED') {
@@ -198,7 +246,10 @@ const turnstileKey = mailrelay?.turnstileSiteKey ?? ''
           say('Something went wrong. Please try again.', false)
         }
       })
-      .catch(function () { say('Network error. Please try again.', false) })
+      .catch(function () {
+        token = null
+        say('Could not send right now. Please try again.', false)
+      })
       .finally(function () { btn.disabled = false; btn.textContent = label })
   })
 })()`}
@@ -211,9 +262,11 @@ const turnstileKey = mailrelay?.turnstileSiteKey ?? ''
     <section class="mt-6 rounded-xl border border-(--color-border) bg-(--color-bg-elevated) p-4 text-[14px]">
       <p class="font-semibold">The contact form is enabled but not configured.</p>
       <p class="mt-1 text-(--color-text-secondary)">
-        Set <code>workerOrigin</code> and <code>endpointId</code> under
-        <code>features.mailrelay</code> in <code>src/config.mjs</code>. This notice only
-        appears in development.
+        Set <code>workerOrigin</code>, <code>endpointId</code> and
+        <code>turnstileSiteKey</code> under <code>features.mailrelay</code> in
+        <code>src/config.mjs</code>. All three are required — without the site key the
+        worker refuses every submission, and it does so as a fake success, so the form
+        would look like it was working. This notice only appears in development.
       </p>
     </section>
   )

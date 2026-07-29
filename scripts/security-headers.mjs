@@ -70,9 +70,14 @@ const giscusEnabled =
 // challenges.cloudflare.com. Miss any of these and the form fails only in
 // production — `astro dev` never applies this policy, so the breakage does
 // not reproduce locally.
+// The site-key condition matches ContactForm.astro and contact.astro: the
+// form does not render without one, so the policy must not widen either.
 const mailrelay = features.mailrelay ?? {}
 const mailrelayEnabled = Boolean(
-  mailrelay.enabled && mailrelay.workerOrigin && mailrelay.endpointId
+  mailrelay.enabled &&
+    mailrelay.workerOrigin &&
+    mailrelay.endpointId &&
+    mailrelay.turnstileSiteKey
 )
 const TURNSTILE = 'https://challenges.cloudflare.com'
 

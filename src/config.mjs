@@ -89,7 +89,12 @@ export const features = {
     workerOrigin: '', // e.g. 'https://mailrelay-v2.<subdomain>.workers.dev'
     /** Endpoint id from POST /v1/admin/endpoints. Public, not a secret. */
     endpointId: '', // e.g. 'ep_...'
-    /** Turnstile *site* key (the public half). */
+    /**
+     * Turnstile *site* key (the public half). Required, not optional —
+     * worker endpoints demand a Turnstile token by default and refuse
+     * submissions without one as a fake success, so a form rendered
+     * without the widget would silently discard every message.
+     */
     turnstileSiteKey: '',
   },
 

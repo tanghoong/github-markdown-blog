@@ -8,6 +8,7 @@
  *   --color-text            >= 4.5:1   (body copy)
  *   --color-text-secondary  >= 4.5:1   (meta text renders at 13-14px)
  *   --color-text on --color-bg-elevated >= 4.5:1  (code blocks, inputs)
+ *   --color-danger          >= 4.5:1   (form errors, 14px)
  */
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
@@ -69,9 +70,14 @@ for (const { name, mode, tokens } of blocks) {
   const elevated = tokens['--color-bg-elevated']
   const text = tokens['--color-text']
   const secondary = tokens['--color-text-secondary']
+  // Error text (form validation, network failures) is small and matters most
+  // exactly when something has gone wrong, so it is held to the same bar.
+  const danger = tokens['--color-danger']
 
-  if (!bg || !text || !secondary || !elevated) {
-    failures.push(`${name}/${mode}: missing one of bg, bg-elevated, text, text-secondary`)
+  if (!bg || !text || !secondary || !elevated || !danger) {
+    failures.push(
+      `${name}/${mode}: missing one of bg, bg-elevated, text, text-secondary, danger`
+    )
     continue
   }
 
@@ -79,6 +85,7 @@ for (const { name, mode, tokens } of blocks) {
     ['text on bg', contrast(text, bg)],
     ['secondary on bg', contrast(secondary, bg)],
     ['text on elevated', contrast(text, elevated)],
+    ['danger on bg', contrast(danger, bg)],
   ]
 
   for (const [label, ratio] of checks) {
@@ -93,7 +100,7 @@ for (const { name, mode, tokens } of blocks) {
   )
 }
 
-console.log('[contrast] preset  mode      text  secondary  elevated')
+console.log('[contrast] preset  mode      text  secondary  elevated  danger')
 console.log(rows.join('\n'))
 
 if (failures.length > 0) {

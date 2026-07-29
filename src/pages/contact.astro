@@ -3,10 +3,14 @@ import Base from '../layouts/Base.astro'
 import ContactForm from '../components/ContactForm.astro'
 import { features, site } from '../config.mjs'
 
+// Must match the check in ContactForm.astro and scripts/security-headers.mjs.
+// The Turnstile site key counts: without it the worker refuses every
+// submission, and it refuses them as a fake success.
 const enabled = Boolean(
   features.mailrelay?.enabled &&
     features.mailrelay?.workerOrigin &&
-    features.mailrelay?.endpointId
+    features.mailrelay?.endpointId &&
+    features.mailrelay?.turnstileSiteKey
 )
 ---
 
