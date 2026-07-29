@@ -82,6 +82,16 @@ export const features = {
    * Enabling this widens the Content-Security-Policy to allow the worker
    * origin and Turnstile — see scripts/security-headers.mjs. Leaving it
    * off ships no extra CSP origins and no contact page at all.
+   *
+   * After changing anything here, run `npm run build` and then, from the
+   * clone-resend checkout:
+   *
+   *   npm run verify:pair -- --blog <path-to-this-repo> --admin-token <token>
+   *
+   * The worker lives in a separate repository, so this repo's own checks
+   * cannot tell whether the two still agree — a wrong endpoint id, an
+   * unwhitelisted origin or a stale build all fail silently, because the
+   * worker answers those rejections with a fake success.
    */
   mailrelay: {
     enabled: false,
