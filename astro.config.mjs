@@ -20,6 +20,13 @@ export default defineConfig({
     plugins: [tailwindcss()],
   },
 
+  image: {
+    // Markdown images are already converted to WebP with explicit dimensions;
+    // this adds the srcset so a phone does not download a desktop-sized file.
+    layout: 'constrained',
+    responsiveStyles: true,
+  },
+
   build: {
     // Keep CSS in an external file rather than inlining small sheets, so the
     // Content-Security-Policy can use `style-src 'self'` for stylesheets
