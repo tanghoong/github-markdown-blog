@@ -30,6 +30,7 @@ const filePath = post.entry.filePath ?? `contents/${post.id}.md`
   ogType="article"
   publishedTime={post.date}
   ogImage={features.ogImages ? `/og/${post.slug}.png` : null}
+  lang={post.lang}
 >
   <article data-pagefind-body>
     <header class="flex gap-3 pt-6">
@@ -41,7 +42,7 @@ const filePath = post.entry.filePath ?? `contents/${post.id}.md`
         </div>
         <div class="mt-0.5 flex flex-wrap items-center gap-x-2 text-[14px] text-(--color-text-secondary)">
           {post.date && (
-            <time datetime={post.date.toISOString()}>{formatDate(post.date, site.locale)}</time>
+            <time datetime={post.date.toISOString()}>{formatDate(post.date, post.lang)}</time>
           )}
           {/* The separator belongs to the pair, not to the category — an
               undated post would otherwise render a leading "· category". */}
@@ -88,7 +89,7 @@ const filePath = post.entry.filePath ?? `contents/${post.id}.md`
     {
       post.updated && (
         <p class="mt-8 text-[13px] text-(--color-text-secondary)">
-          Last updated {formatDate(post.updated, site.locale)}
+          Last updated {formatDate(post.updated, post.lang)}
         </p>
       )
     }

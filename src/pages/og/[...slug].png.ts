@@ -54,7 +54,14 @@ export const getStaticPaths = (async () => {
 export const GET: APIRoute = async ({ props }) => {
   const { post } = props as { post: Post }
 
-  const needsCjk = NON_LATIN.test(post.title) || NON_LATIN.test(site.handle)
+  // A non-English post needs the CJK face even when its title happens to be
+  // Latin, because the card's date line is formatted in the post's own locale
+  // and `2026年8月2日` would otherwise render as tofu.
+  const needsCjk =
+    post.lang !== site.locale ||
+    NON_LATIN.test(post.title) ||
+    NON_LATIN.test(post.category ?? '') ||
+    NON_LATIN.test(site.handle)
 
   const [regular, bold] = await Promise.all([
     loadFont(latinFont(400)),
@@ -69,7 +76,7 @@ export const GET: APIRoute = async ({ props }) => {
   // different palette gets share images that match it.
   const palette = getPalette(theme, 'dark')
 
-  const meta = [formatDate(post.date, site.locale), post.category]
+  const meta = [formatDate(post.date, post.lang), post.category]
     .filter(Boolean)
     .join('  ·  ')
 

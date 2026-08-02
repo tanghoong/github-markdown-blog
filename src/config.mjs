@@ -14,8 +14,8 @@ export const site = {
   url: 'https://github-markdown-blog.pages.dev',
 
   title: 'tanghoong',
-  handle: '@tanghoong',
-  bio: 'Writing in markdown, publishing with git push.',
+  handle: '@charlie',
+  bio: 'Levelling up in public — notes from building AI systems solo.',
 
   /**
    * Path to an avatar image in public/, e.g. '/avatar.jpg'. When null, the
@@ -28,6 +28,19 @@ export const site = {
 
   /** BCP-47 tag used for date formatting and <html lang>. */
   locale: 'en',
+
+  /**
+   * Tag applied to posts detected as Chinese (see `detectLang` in
+   * src/lib/posts.ts). The script subtag is the point: bare `zh` leaves the
+   * browser to guess between Traditional and Simplified for the codepoints
+   * the two share, and it guesses from the reader's system, not the text.
+   * `zh-Hant` pins it to Traditional, which is what the font stack in
+   * global.css and the OG card's Noto Sans TC already assume.
+   *
+   * Writing Simplified? Set 'zh-Hans', add the SC faces to `--font-sans`,
+   * and swap `@fontsource/noto-sans-tc` for `-sc` in src/pages/og/.
+   */
+  cjkLocale: 'zh-Hant',
 }
 
 /**
