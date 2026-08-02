@@ -1,5 +1,6 @@
 ---
 import { site } from '../config.mjs'
+import profile from '../data/github.json'
 
 interface Props {
   size?: number
@@ -7,12 +8,22 @@ interface Props {
 
 const { size = 36 } = Astro.props
 const initial = (site.title ?? '?').trim().charAt(0).toUpperCase()
+
+/**
+ * `site.avatar` first, so an explicit choice always wins; otherwise the copy of
+ * the GitHub avatar that scripts/github-profile.mjs downloads into public/.
+ *
+ * Both are same-origin paths. The GitHub CDN URL is deliberately not used, so
+ * no page makes a third-party request for a picture — and no reader's IP is
+ * handed to GitHub for loading one.
+ */
+const src = site.avatar ?? (profile as { avatarPath?: string }).avatarPath ?? null
 ---
 
 {
-  site.avatar ? (
+  src ? (
     <img
-      src={site.avatar}
+      src={src}
       alt={site.title}
       width={size}
       height={size}

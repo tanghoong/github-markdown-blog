@@ -98,6 +98,35 @@ function topLanguages(repos, limit = 5) {
     .map(([name, count]) => ({ name, count }))
 }
 
+/**
+ * Downloads the avatar into public/ and returns its site-relative path.
+ *
+ * Copied rather than hot-linked. Pointing an <img> at avatars.githubusercontent
+ * .com would put a third-party request on every page of a site whose whole
+ * premise is not having one, and it would hand GitHub the IP of every reader.
+ * Serving it from our own origin costs one build-time request and keeps
+ * `img-src 'self'` honest.
+ *
+ * 144px covers the largest use (72px in the feed header) at 2x; the 36px
+ * bylines scale down from the same file. It lands around 4 KB.
+ */
+async function fetchAvatar(url) {
+  const sized = new URL(url)
+  sized.searchParams.set('s', '144')
+
+  const response = await fetch(sized, { headers })
+  if (!response.ok) throw new Error(`${response.status} fetching the avatar`)
+
+  const type = response.headers.get('content-type') ?? ''
+  if (!type.startsWith('image/')) {
+    throw new Error(`avatar came back as ${type || 'an unknown type'}, not an image`)
+  }
+
+  const file = resolve(root, 'public/avatar.jpg')
+  writeFileSync(file, Buffer.from(await response.arrayBuffer()))
+  return '/avatar.jpg'
+}
+
 function topRepos(repos, limit = 3) {
   return repos
     .filter((repo) => !repo.fork && !repo.archived)
@@ -120,13 +149,24 @@ try {
 
   const owned = repos.filter((repo) => !repo.fork)
 
+  // A failed avatar download must not cost us the figures, which are the
+  // point. public/avatar.jpg is committed, so the previous copy stays in place
+  // and the card keeps its picture.
+  let avatarPath = '/avatar.jpg'
+  try {
+    avatarPath = await fetchAvatar(user.avatar_url)
+  } catch (error) {
+    console.warn(`[github] kept the committed avatar (${error.message}).`)
+  }
+
   const profile = {
     login: user.login,
     name: user.name,
     bio: user.bio,
     location: user.location,
     blog: user.blog || null,
-    avatar: user.avatar_url,
+    /** Site-relative, not the GitHub CDN URL — see fetchAvatar. */
+    avatarPath,
     url: user.html_url,
     followers: user.followers,
     following: user.following,
