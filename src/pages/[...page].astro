@@ -5,7 +5,8 @@ import Avatar from '../components/Avatar.astro'
 import PostCard from '../components/PostCard.astro'
 import Pagination from '../components/Pagination.astro'
 import Search from '../components/Search.astro'
-import { site, layout } from '../config.mjs'
+import GitHubInfo from '../components/GitHubInfo.astro'
+import { site, layout, features } from '../config.mjs'
 import { getCategories, getPosts, getTags, type Post } from '../lib/posts'
 
 export const getStaticPaths = (async ({ paginate }) => {
@@ -39,6 +40,7 @@ const chip =
           <p class="mt-3 text-[14px] text-(--color-text-secondary)">
             {total} post{total === 1 ? '' : 's'}
           </p>
+          {features.githubInfo && <GitHubInfo />}
         </div>
         <Avatar size={72} />
       </section>

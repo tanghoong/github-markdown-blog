@@ -1,0 +1,104 @@
+---
+/**
+ * Public GitHub figures, compiled in at build time by scripts/github-profile.mjs.
+ *
+ * Renders nothing when the data is missing — a first build with no network
+ * leaves an empty object behind, and a blank strip is better than a row of
+ * zeroes claiming the account has no repositories.
+ */
+import profile from '../data/github.json'
+
+interface Profile {
+  login?: string
+  location?: string | null
+  blog?: string | null
+  url?: string
+  followers?: number
+  following?: number
+  publicRepos?: number
+  stars?: number
+  languages?: { name: string; count: number }[]
+  fetchedAt?: string
+}
+
+const data = profile as Profile
+
+// `login` is written only on a successful fetch, so it doubles as the
+// "is there anything here" check.
+const show = Boolean(data.login)
+
+/** 1200 → 1.2k. Follower counts are a glance, not an accounting figure. */
+function compact(value: number): string {
+  return value >= 1000 ? `${(value / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(value)
+}
+
+// `stars` is deliberately not shown. It is still collected — the script writes
+// it and it is there to switch on — but a star count sitting next to a repo
+// count invites a comparison that says nothing useful about the writing.
+const stats = show
+  ? [
+      { label: 'repos', value: data.publicRepos },
+      { label: 'followers', value: data.followers },
+    ].filter((stat): stat is { label: string; value: number } => typeof stat.value === 'number')
+  : []
+
+// The website is shown without its scheme — the protocol is noise in a byline.
+const blogHref = data.blog
+  ? data.blog.startsWith('http')
+    ? data.blog
+    : `https://${data.blog}`
+  : null
+const blogLabel = data.blog?.replace(/^https?:\/\//, '').replace(/\/$/, '')
+---
+
+{
+  show && (
+    <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[14px] text-(--color-text-secondary)">
+      {stats.map((stat) => (
+        <span>
+          <span class="font-semibold text-(--color-text)">{compact(stat.value)}</span>{' '}
+          {stat.label}
+        </span>
+      ))}
+
+      {data.location && (
+        <span class="inline-flex items-center gap-1">
+          <svg viewBox="0 0 24 24" fill="none" class="size-[15px]" aria-hidden="true">
+            <path
+              d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11Z"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <circle cx="12" cy="10" r="2.5" stroke="currentColor" stroke-width="1.6" />
+          </svg>
+          {data.location}
+        </span>
+      )}
+
+      {blogHref && (
+        <a
+          href={blogHref}
+          rel="me noopener noreferrer"
+          target="_blank"
+          class="underline underline-offset-2 transition-colors hover:text-(--color-text)"
+        >
+          {blogLabel}
+        </a>
+      )}
+    </div>
+  )
+}
+
+{
+  show && data.languages && data.languages.length > 0 && (
+    <div class="mt-2 flex flex-wrap gap-1.5">
+      {data.languages.map((language) => (
+        <span class="rounded-full border border-(--color-border) px-2 py-0.5 text-[12px] text-(--color-text-secondary)">
+          {language.name}
+        </span>
+      ))}
+    </div>
+  )
+}
