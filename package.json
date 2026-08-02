@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "prebuild": "node scripts/git-dates.mjs",
+    "prebuild": "node scripts/git-dates.mjs && node scripts/github-profile.mjs",
     "build": "astro build && pagefind --site dist && node scripts/security-headers.mjs",
     "preview": "astro preview",
-    "precheck": "node scripts/git-dates.mjs",
+    "precheck": "node scripts/git-dates.mjs && node scripts/github-profile.mjs",
     "check": "astro check && node scripts/check-contrast.mjs",
     "check:contrast": "node scripts/check-contrast.mjs",
     "sync": "astro sync"

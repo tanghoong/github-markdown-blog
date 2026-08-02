@@ -122,6 +122,19 @@ export const features = {
   },
 
   /**
+   * Show public GitHub figures — repos, followers, stars, location, languages —
+   * under the bio on the feed page.
+   *
+   * Fetched once per build by scripts/github-profile.mjs and compiled into the
+   * HTML, so GitHub sees two requests per deploy rather than two per visitor.
+   * Nothing is called from the browser and no CSP origin is added.
+   *
+   * Turning this off leaves the fetch in place but renders nothing; delete the
+   * `prebuild` step in package.json to skip the network call entirely.
+   */
+  githubInfo: true,
+
+  /**
    * Generate a social share card per post at build time (/og/<slug>.png).
    * Costs a couple of seconds of build; nothing at runtime.
    */

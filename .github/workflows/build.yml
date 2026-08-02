@@ -34,3 +34,8 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # scripts/github-profile.mjs is unauthenticated without this, and the
+          # anonymous API allows 60 requests an hour per IP — shared across every
+          # runner on the hosted pool. The default job token raises it to 5000.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
