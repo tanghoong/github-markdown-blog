@@ -13,9 +13,9 @@ export const site = {
    */
   url: 'https://github-markdown-blog.pages.dev',
 
-  title: 'Alaias Charlie',
-  handle: '@alaias',
-  bio: 'Continuous learning, solo leveling.',
+  title: 'tanghoong',
+  handle: '@charlie',
+  bio: 'Levelling up in public — notes from building AI systems solo.',
 
   /**
    * Path to an avatar image in public/, e.g. '/avatar.jpg'. When null, the

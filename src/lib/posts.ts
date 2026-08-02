@@ -1,5 +1,6 @@
 import { getCollection, type CollectionEntry } from 'astro:content'
 import gitDates from '../data/git-dates.json'
+import { site } from '../config.mjs'
 
 type Entry = CollectionEntry<'posts'>
 
@@ -12,6 +13,8 @@ export interface Post {
   tags: string[]
   date: Date | null
   updated: Date | null
+  /** BCP-47 tag, from frontmatter or detected from the body. */
+  lang: string
   pinned: boolean
   readingMinutes: number
   entry: Entry
@@ -57,6 +60,29 @@ function deriveExcerpt(body: string, limit = 200): string {
   return plain.length > limit ? plain.slice(0, limit).trimEnd() + '…' : plain
 }
 
+/**
+ * Language of a post, from the proportion of CJK characters in its body.
+ *
+ * Derived rather than declared, for the same reason the title and date are:
+ * a bare markdown file should be a complete post. A Chinese post is obviously
+ * Chinese from its content, and asking the author to also say so is a field
+ * they will eventually forget — at which point the page claims a language it
+ * is not written in.
+ *
+ * The threshold is deliberately low. An English post quoting a Chinese phrase
+ * stays English; a Chinese post stays Chinese despite code blocks, product
+ * names and technical terms in Latin script, which is the common case here.
+ * Frontmatter `lang` overrides this for anything unusual.
+ */
+function detectLang(body: string): string {
+  const cjk = (body.match(/[一-鿿]/g) ?? []).length
+  const latin = (body.match(/[A-Za-z]/g) ?? []).length
+  if (cjk === 0) return site.locale
+  // One CJK character carries roughly as much as a short Latin word, so weight
+  // the Latin count down before comparing.
+  return cjk > latin / 4 ? 'zh' : site.locale
+}
+
 function readingMinutes(body: string): number {
   // Counts CJK characters individually, everything else by whitespace-delimited
   // word, so mixed-language posts get a sane estimate.
@@ -87,6 +113,7 @@ function toPost(entry: Entry): Post {
     tags: entry.data.tags,
     date,
     updated: updated && date && updated.getTime() === date.getTime() ? null : updated,
+    lang: entry.data.lang ?? detectLang(body),
     pinned: entry.data.pinned,
     readingMinutes: readingMinutes(body),
     entry,

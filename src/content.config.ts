@@ -22,6 +22,11 @@ const posts = defineCollection({
     date: z.coerce.date().optional(),
     updated: z.coerce.date().optional(),
     tags: z.array(z.string()).default([]),
+    /**
+     * BCP-47 tag for this post. Derived from the body when omitted, which is
+     * the expected default — see `detectLang` in src/lib/posts.ts.
+     */
+    lang: z.string().optional(),
     draft: z.boolean().default(false),
     pinned: z.boolean().default(false),
   }),

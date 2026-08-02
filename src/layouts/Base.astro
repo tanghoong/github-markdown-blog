@@ -11,6 +11,12 @@ interface Props {
   publishedTime?: Date | null
   /** Absolute or root-relative path of a share card for this page. */
   ogImage?: string | null
+  /**
+   * BCP-47 tag for this page. Post pages pass the post's own language so a
+   * Chinese post is not served as `lang="en"` — Pagefind segments its index by
+   * this attribute, and gets Chinese word-splitting only when it is correct.
+   */
+  lang?: string
 }
 
 const {
@@ -19,6 +25,7 @@ const {
   ogType = 'website',
   publishedTime = null,
   ogImage = null,
+  lang = site.locale,
 } = Astro.props
 
 const pageTitle = title ? `${title} · ${site.title}` : site.title
@@ -28,7 +35,7 @@ const shareCard = ogImage ? new URL(ogImage, origin) : null
 ---
 
 <!doctype html>
-<html lang={site.locale} data-theme="light" data-preset={theme} style={`--container-feed: ${layout.feedWidth}`}>
+<html lang={lang} data-theme="light" data-preset={theme} style={`--container-feed: ${layout.feedWidth}`}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
