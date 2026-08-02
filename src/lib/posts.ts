@@ -80,7 +80,7 @@ function detectLang(body: string): string {
   if (cjk === 0) return site.locale
   // One CJK character carries roughly as much as a short Latin word, so weight
   // the Latin count down before comparing.
-  return cjk > latin / 4 ? 'zh' : site.locale
+  return cjk > latin / 4 ? site.cjkLocale : site.locale
 }
 
 function readingMinutes(body: string): number {
