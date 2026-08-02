@@ -126,8 +126,8 @@ export const features = {
    * under the bio on the feed page.
    *
    * Fetched once per build by scripts/github-profile.mjs and compiled into the
-   * HTML, so GitHub sees two requests per deploy rather than two per visitor.
-   * Nothing is called from the browser and no CSP origin is added.
+   * HTML, so GitHub sees a couple of requests per deploy rather than a couple
+   * per visitor. Nothing is called from the browser and no CSP origin is added.
    *
    * Turning this off leaves the fetch in place but renders nothing; delete the
    * `prebuild` step in package.json to skip the network call entirely.

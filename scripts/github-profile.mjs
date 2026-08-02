@@ -3,11 +3,12 @@
  * bio on the feed page.
  *
  * Runs at build time, not in the browser. That is the whole point: the numbers
- * are compiled into the HTML, so GitHub sees two requests per deploy rather
- * than two per visitor. A site that called the API from the page would burn
- * through the unauthenticated 60-per-hour limit at a few dozen readers and
- * then start rendering blanks — and it would put a third-party request on the
- * critical path of a site whose entire premise is not having one.
+ * are compiled into the HTML, so GitHub sees a couple of requests per deploy —
+ * one for the profile plus one per hundred repositories — rather than a couple
+ * per visitor. A site that called the API from the page would burn through the
+ * unauthenticated 60-per-hour limit at a few dozen readers and then start
+ * rendering blanks, and it would put a third-party request on the critical
+ * path of a site whose entire premise is not having one.
  *
  * Unlike scripts/git-dates.mjs, the output is committed rather than ignored.
  * Git history is always present in a clone; the network is not. Committing the
@@ -53,6 +54,35 @@ async function getJson(url) {
   return response.json()
 }
 
+/**
+ * Every public repository, following pagination.
+ *
+ * The figures derived below — total stars, the language breakdown — are shown
+ * to readers as account-wide totals, so stopping at the first page would
+ * quietly understate them the moment the account passes 100 repositories.
+ * Sorting by `pushed` makes that worse rather than better: the repositories
+ * dropped would be the dormant ones, which are exactly where an old popular
+ * project sits. A build-log warning is not a fix, because the page still
+ * renders a wrong number.
+ */
+async function allRepos(login) {
+  const perPage = 100
+  const repos = []
+
+  // Bounded so a pagination bug cannot spin forever. 20 pages is 2000
+  // repositories; an account past that has bigger problems than this card.
+  for (let page = 1; page <= 20; page += 1) {
+    const batch = await getJson(
+      `https://api.github.com/users/${login}/repos?per_page=${perPage}&page=${page}&sort=pushed`
+    )
+    repos.push(...batch)
+    if (batch.length < perPage) return repos
+  }
+
+  console.warn('[github] stopped paginating at 2000 repositories; totals may be short.')
+  return repos
+}
+
 /** Repo count per language, most-used first. Forks excluded — they are not work. */
 function topLanguages(repos, limit = 5) {
   const counts = new Map()
@@ -85,18 +115,8 @@ function topRepos(repos, limit = 3) {
 try {
   const [user, repos] = await Promise.all([
     getJson(`https://api.github.com/users/${owner}`),
-    // 100 is the page maximum. Someone with more public repos than that would
-    // need pagination; the derived figures below would otherwise silently
-    // describe only the most recently pushed 100.
-    getJson(`https://api.github.com/users/${owner}/repos?per_page=100&sort=pushed`),
+    allRepos(owner),
   ])
-
-  if (repos.length === 100) {
-    console.warn(
-      '[github] hit the 100-repo page limit; stars and languages cover only the ' +
-        'most recently pushed 100 repositories.'
-    )
-  }
 
   const owned = repos.filter((repo) => !repo.fork)
 
