@@ -1,7 +1,6 @@
 ---
 title: Sync or async for an AI support chatbot
 date: 2026-08-02
-draft: true
 tags: [AI Agents, System Architecture, Backend Engineering, LLM]
 excerpt: If customer A is waiting for the LLM, does customer B have to wait too? The answer is an architecture decision, and it matters long before you have a thousand customers.
 ---
