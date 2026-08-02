@@ -32,11 +32,13 @@ function compact(value: number): string {
   return value >= 1000 ? `${(value / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(value)
 }
 
+// `stars` is deliberately not shown. It is still collected — the script writes
+// it and it is there to switch on — but a star count sitting next to a repo
+// count invites a comparison that says nothing useful about the writing.
 const stats = show
   ? [
       { label: 'repos', value: data.publicRepos },
       { label: 'followers', value: data.followers },
-      { label: 'stars', value: data.stars },
     ].filter((stat): stat is { label: string; value: number } => typeof stat.value === 'number')
   : []
 
