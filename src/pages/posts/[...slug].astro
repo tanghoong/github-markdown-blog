@@ -8,6 +8,7 @@ import Comments from '../../components/Comments.astro'
 import TableOfContents from '../../components/TableOfContents.astro'
 import { site, features } from '../../config.mjs'
 import { formatDate, getPosts, neighbours, relatedTo, termSlug, type Post } from '../../lib/posts'
+import { ui } from '../../lib/ui'
 
 export const getStaticPaths = (async () => {
   const posts = await getPosts()
@@ -22,6 +23,7 @@ const { Content, headings } = await render(post.entry)
 const { newer, older } = neighbours(posts, post.id)
 const related = relatedTo(posts, post)
 const filePath = post.entry.filePath ?? `contents/${post.id}.md`
+const t = ui(post.lang)
 ---
 
 <Base
@@ -78,7 +80,7 @@ const filePath = post.entry.filePath ?? `contents/${post.id}.md`
       )
     }
 
-    <TableOfContents headings={headings} minHeadings={features.tocMinHeadings} />
+    <TableOfContents headings={headings} minHeadings={features.tocMinHeadings} lang={post.lang} />
 
     <div
       class="article prose prose-neutral dark:prose-invert mt-5 max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-h2:text-[20px] prose-h3:text-[17px] prose-p:text-[16px] prose-p:leading-[1.7] prose-li:text-[16px] prose-li:leading-[1.7]"
@@ -89,13 +91,14 @@ const filePath = post.entry.filePath ?? `contents/${post.id}.md`
     {
       post.updated && (
         <p class="mt-8 text-[13px] text-(--color-text-secondary)">
-          Last updated {formatDate(post.updated, post.lang)}
+          {t.lastUpdated} {formatDate(post.updated, post.lang)}
         </p>
       )
     }
 
     <div class="mt-6 border-t border-(--color-border) pt-4">
       <ActionRow
+        lang={post.lang}
         slug={post.slug}
         title={post.title}
         readingMinutes={post.readingMinutes}
@@ -107,7 +110,7 @@ const filePath = post.entry.filePath ?? `contents/${post.id}.md`
   {
     related.length > 0 && (
       <section class="mt-8 border-t border-(--color-border) pt-6">
-        <h2 class="mb-3 text-[15px] font-semibold">Related</h2>
+        <h2 class="mb-3 text-[15px] font-semibold">{t.related}</h2>
         <ul class="space-y-1">
           {related.map((item) => (
             <li>
@@ -131,14 +134,14 @@ const filePath = post.entry.filePath ?? `contents/${post.id}.md`
 
   {
     (newer || older) && (
-      <nav class="mt-8 grid gap-3 sm:grid-cols-2" aria-label="More posts">
+      <nav class="mt-8 grid gap-3 sm:grid-cols-2" aria-label={t.morePosts}>
         {newer ? (
           <a
             href={`/posts/${newer.slug}/`}
             class="rounded-xl border border-(--color-border) p-4 transition-colors hover:bg-(--color-hover)"
             rel="prev"
           >
-            <span class="text-[13px] text-(--color-text-secondary)">Newer</span>
+            <span class="text-[13px] text-(--color-text-secondary)">{t.newer}</span>
             <span class="mt-1 block text-[15px] leading-snug font-semibold">{newer.title}</span>
           </a>
         ) : (
@@ -150,7 +153,7 @@ const filePath = post.entry.filePath ?? `contents/${post.id}.md`
             class="rounded-xl border border-(--color-border) p-4 transition-colors hover:bg-(--color-hover) sm:text-right"
             rel="next"
           >
-            <span class="text-[13px] text-(--color-text-secondary)">Older</span>
+            <span class="text-[13px] text-(--color-text-secondary)">{t.older}</span>
             <span class="mt-1 block text-[15px] leading-snug font-semibold">{older.title}</span>
           </a>
         )}
@@ -163,9 +166,21 @@ const filePath = post.entry.filePath ?? `contents/${post.id}.md`
 
 {/* Adds a copy button to every code block. Hoisted, so it ships once. */}
 <script>
-  const LABEL = 'Copy'
+  // Read off <html lang> rather than importing src/lib/ui.ts, which would pull
+  // the site config into this client bundle for the sake of four words.
+  const LABELS = {
+    en: { copy: 'Copy', copied: 'Copied', failed: 'Failed', aria: 'Copy code to clipboard' },
+    zh: { copy: '複製', copied: '已複製', failed: '失敗', aria: '複製程式碼到剪貼簿' },
+  }
+
+  function labels() {
+    const lang = document.documentElement.lang.split('-')[0]
+    return lang === 'zh' ? LABELS.zh : LABELS.en
+  }
 
   function addCopyButtons() {
+    const text = labels()
+
     for (const pre of document.querySelectorAll<HTMLPreElement>('.article pre')) {
       if (pre.querySelector('[data-copy]')) continue
 
@@ -174,18 +189,18 @@ const filePath = post.entry.filePath ?? `contents/${post.id}.md`
       const button = document.createElement('button')
       button.type = 'button'
       button.dataset.copy = ''
-      button.textContent = LABEL
-      button.setAttribute('aria-label', 'Copy code to clipboard')
+      button.textContent = text.copy
+      button.setAttribute('aria-label', text.aria)
 
       button.addEventListener('click', async () => {
         const code = pre.querySelector('code')?.textContent ?? ''
         try {
           await navigator.clipboard.writeText(code)
-          button.textContent = 'Copied'
+          button.textContent = text.copied
         } catch {
-          button.textContent = 'Failed'
+          button.textContent = text.failed
         }
-        setTimeout(() => (button.textContent = LABEL), 1500)
+        setTimeout(() => (button.textContent = text.copy), 1500)
       })
 
       pre.append(button)

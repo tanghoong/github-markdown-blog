@@ -1,5 +1,6 @@
 ---
 import { site } from '../config.mjs'
+import { ui } from '../lib/ui'
 
 interface Props {
   slug: string
@@ -7,9 +8,12 @@ interface Props {
   readingMinutes: number
   /** Repo-relative path of the source markdown file. */
   filePath: string
+  /** Language of the post this row belongs to; labels follow it. */
+  lang?: string
 }
 
-const { slug, title, readingMinutes, filePath } = Astro.props
+const { slug, title, readingMinutes, filePath, lang } = Astro.props
+const t = ui(lang)
 
 const url = new URL(`/posts/${slug}/`, Astro.site ?? Astro.url.origin).toString()
 const sourceUrl = `https://github.com/${site.github}/blob/main/${filePath}`
@@ -22,7 +26,7 @@ const button =
 ---
 
 <div class="-ml-1.5 flex items-center gap-1 text-(--color-text)">
-  <a href={replyUrl} target="_blank" rel="noopener noreferrer" class={button} aria-label="Reply on GitHub">
+  <a href={replyUrl} target="_blank" rel="noopener noreferrer" class={button} aria-label={t.replyOnGitHub}>
     <svg viewBox="0 0 24 24" fill="none" class="size-[19px]" aria-hidden="true">
       <path
         d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.2-.6L3 21l1.8-5a8.2 8.2 0 0 1-.8-3.5 8.4 8.4 0 0 1 9-8.4 8.4 8.4 0 0 1 8 7.4Z"
@@ -33,7 +37,7 @@ const button =
     </svg>
   </a>
 
-  <button type="button" class={button} data-share={url} aria-label="Copy link">
+  <button type="button" class={button} data-share={url} aria-label={t.copyLink}>
     <svg viewBox="0 0 24 24" fill="none" class="size-[19px]" aria-hidden="true">
       <path
         d="M10 13.5a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 0 0-5-5l-1 1M14 10.5a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 0 0 5 5l1-1"
@@ -44,7 +48,7 @@ const button =
     </svg>
   </button>
 
-  <a href={sourceUrl} target="_blank" rel="noopener noreferrer" class={button} aria-label="View source on GitHub">
+  <a href={sourceUrl} target="_blank" rel="noopener noreferrer" class={button} aria-label={t.viewSource}>
     <svg viewBox="0 0 24 24" fill="none" class="size-[19px]" aria-hidden="true">
       <path
         d="M9 18.5c-4 1.2-4-2.1-5.6-2.5M15 21v-3.3a2.9 2.9 0 0 0-.8-2.2c2.7-.3 5.5-1.3 5.5-6a4.7 4.7 0 0 0-1.3-3.2 4.3 4.3 0 0 0-.1-3.2s-1-.3-3.4 1.3a11.6 11.6 0 0 0-6 0C6.5 2.8 5.5 3.1 5.5 3.1a4.3 4.3 0 0 0-.1 3.2A4.7 4.7 0 0 0 4 9.6c0 4.6 2.8 5.6 5.5 6a2.9 2.9 0 0 0-.8 2.1V21"
@@ -56,7 +60,7 @@ const button =
   </a>
 
   <span class="ml-1 text-[13px] text-(--color-text-secondary)">
-    {readingMinutes} min read
+    {t.minRead(readingMinutes)}
   </span>
 </div>
 

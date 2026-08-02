@@ -1,13 +1,17 @@
 ---
 import type { MarkdownHeading } from 'astro'
+import { ui } from '../lib/ui'
 
 interface Props {
   headings: MarkdownHeading[]
   /** Below this many headings a TOC is noise rather than navigation. */
   minHeadings: number
+  /** Language of the post this belongs to; labels follow it. */
+  lang?: string
 }
 
-const { headings, minHeadings } = Astro.props
+const { headings, minHeadings, lang } = Astro.props
+const t = ui(lang)
 
 // h1 is the page title, and anything below h3 makes the list unwieldy.
 const entries = headings.filter((heading) => heading.depth === 2 || heading.depth === 3)
@@ -25,11 +29,11 @@ const show = entries.length >= minHeadings
           <svg viewBox="0 0 24 24" fill="none" class="size-4 transition-transform group-open:rotate-90" aria-hidden="true">
             <path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
-          On this page
+          {t.onThisPage}
         </span>
       </summary>
 
-      <nav aria-label="Table of contents">
+      <nav aria-label={t.tableOfContents}>
         <ul class="mt-2 space-y-1 text-[14px]">
           {entries.map((heading) => (
             <li class={heading.depth === 3 ? 'ml-4' : ''}>
